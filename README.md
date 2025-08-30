@@ -5,7 +5,7 @@
 [![Built by AutoGen Team](https://img.shields.io/badge/Built%20by-AutoGen%20Team-blue)](https://github.com/microsoft/autogen)
 
 > [!TIP]
-> MarkItDown now offers an MCP (Model Context Protocol) server for integration with LLM applications like Claude Desktop. See [markitdown-mcp](https://github.com/microsoft/markitdown/tree/main/packages/markitdown-mcp) for more information.
+> MarkItDown now offers an MCP (Model Context Protocol) server and FastAPI web UI for enhanced integration and user experience. See [MCP Tools](#mcp-tools) and [Web UI](#web-ui) sections for more information.
 
 > [!IMPORTANT]
 > Breaking changes between 0.0.1 to 0.1.0:
@@ -15,31 +15,536 @@
 
 MarkItDown is a lightweight Python utility for converting various files to Markdown for use with LLMs and related text analysis pipelines. To this end, it is most comparable to [textract](https://github.com/deanmalmgren/textract), but with a focus on preserving important document structure and content as Markdown (including: headings, lists, tables, links, etc.) While the output is often reasonably presentable and human-friendly, it is meant to be consumed by text analysis tools -- and may not be the best option for high-fidelity document conversions for human consumption.
 
+## 🚀 New Features
+
+### MCP (Model Context Protocol) Tools
+MarkItDown now provides MCP tools for seamless integration with LLM applications like Claude Desktop:
+
+- **File Conversion**: Convert individual files to Markdown
+- **Batch Processing**: Convert multiple files simultaneously
+- **Format Detection**: Automatically detect file formats
+- **Plugin Management**: List and manage available plugins
+- **Supported Formats**: Get comprehensive format support information
+
+### FastAPI Web UI
+A modern web interface for easy file conversion:
+
+- **Drag & Drop**: Simple file upload interface
+- **Batch Processing**: Convert multiple files at once
+- **Real-time Updates**: Monitor conversion progress
+- **RESTful API**: Programmatic access to all features
+- **Auto-detection**: Automatic format detection and conversion
+- **Configurable Directories**: Map local folders for input/output
+- **Port 8100**: Exposed to local PC for easy access
+
+### Production-Ready Deployment
+Complete deployment solution with:
+
+- **Docker Containerization**: Easy deployment and scaling
+- **Configurable Volumes**: Map local directories for different workflows
+- **Nginx Reverse Proxy**: Production-ready with rate limiting and security
+- **CI/CD Pipeline**: Automated testing and deployment
+- **Health Monitoring**: Built-in health checks and logging
+- **Cross-Platform Scripts**: Deployment scripts for Linux/macOS and Windows
+
+## 📊 Project Architecture
+
+```mermaid
+graph TB
+    subgraph "User Interfaces"
+        CLI[Command Line Interface]
+        WebUI[FastAPI Web UI<br/>Port 8100]
+        MCP[MCP Tools]
+        API[RESTful API]
+    end
+    
+    subgraph "Core Services"
+        MarkItDown[MarkItDown Core]
+        MCP_Server[MCP Server]
+        Web_Server[FastAPI Server]
+        Nginx[Nginx Reverse Proxy<br/>Port 80/443]
+    end
+    
+    subgraph "File Processing"
+        Converters[File Converters]
+        Plugins[Plugin System]
+        Formats[Format Detection]
+        Batch[Batch Processing]
+    end
+    
+    subgraph "Deployment"
+        Docker[Docker Container]
+        Volumes[Configurable Volumes<br/>Input/Output]
+        CI_CD[CI/CD Pipeline]
+        Monitoring[Health Checks]
+    end
+    
+    subgraph "Output"
+        Markdown[Markdown Output]
+        Metadata[File Metadata]
+        Errors[Error Handling]
+        Logs[Structured Logging]
+    end
+    
+    CLI --> MarkItDown
+    WebUI --> Web_Server
+    MCP --> MCP_Server
+    API --> Web_Server
+    
+    Web_Server --> MarkItDown
+    MCP_Server --> MarkItDown
+    Nginx --> Web_Server
+    
+    MarkItDown --> Converters
+    MarkItDown --> Plugins
+    MarkItDown --> Formats
+    MarkItDown --> Batch
+    
+    Converters --> Markdown
+    Plugins --> Markdown
+    Formats --> Metadata
+    Batch --> Markdown
+    
+    Docker --> Volumes
+    Docker --> Monitoring
+    CI_CD --> Docker
+    
+    MarkItDown --> Errors
+    MarkItDown --> Logs
+```
+
+## 🔧 Package Structure
+
+```mermaid
+graph LR
+    subgraph "MarkItDown Workspace"
+        Core[markitdown<br/>Core Library]
+        MCP_Server[markitdown-mcp-server<br/>MCP Tools]
+        Web_UI[markitdown-web-ui<br/>FastAPI UI]
+        Sample_Plugin[markitdown-sample-plugin<br/>Example Plugin]
+        MCP_Client[markitdown-mcp<br/>MCP Client]
+    end
+    
+    subgraph "Deployment"
+        Docker[Docker Container]
+        Scripts[Deployment Scripts]
+        Config[Configuration Files]
+    end
+    
+    subgraph "Documentation"
+        API_Docs[API Documentation]
+        Tool_Cards[Tool Cards]
+        Guides[HOW TO Guides]
+        Plans[Project Plans]
+    end
+    
+    Core --> MCP_Server
+    Core --> Web_UI
+    Core --> Sample_Plugin
+    MCP_Server --> MCP_Client
+    
+    Web_UI --> Docker
+    Scripts --> Docker
+    Config --> Docker
+    
+    Core --> API_Docs
+    MCP_Server --> Tool_Cards
+    Web_UI --> Guides
+    Docker --> Plans
+```
+
+## 📋 Supported Formats
+
 MarkItDown currently supports the conversion from:
 
-- PDF
-- PowerPoint
-- Word
-- Excel
-- Images (EXIF metadata and OCR)
-- Audio (EXIF metadata and speech transcription)
-- HTML
-- Text-based formats (CSV, JSON, XML)
-- ZIP files (iterates over contents)
-- Youtube URLs
-- EPubs
-- ... and more!
+- **Documents**: PDF, PowerPoint, Word, Excel
+- **Media**: Images (EXIF metadata and OCR), Audio (transcription)
+- **Web**: HTML, YouTube URLs
+- **Data**: CSV, JSON, XML
+- **Archives**: ZIP files (iterates over contents)
+- **E-books**: EPubs
+- **Email**: Outlook messages
+- **And more!**
 
-## Why Markdown?
+## 🚀 Quick Start
 
-Markdown is extremely close to plain text, with minimal markup or formatting, but still
-provides a way to represent important document structure. Mainstream LLMs, such as
-OpenAI's GPT-4o, natively "_speak_" Markdown, and often incorporate Markdown into their
-responses unprompted. This suggests that they have been trained on vast amounts of
-Markdown-formatted text, and understand it well. As a side benefit, Markdown conventions
-are also highly token-efficient.
+### 1. Installation
 
-## Prerequisites
+```bash
+# Clone the repository
+git clone git@github.com:microsoft/markitdown.git
+cd markitdown
+
+# Setup development environment
+./scripts/setup-dev.sh  # Linux/Mac
+# or
+scripts\setup-dev.bat   # Windows
+
+# Or use make
+make setup-dev
+```
+
+### 2. Start the Web UI
+
+```bash
+# Start the FastAPI web UI
+make start-web
+# or
+cd packages/markitdown-web-ui
+uv run python -m markitdown_web_ui
+```
+
+Visit `http://localhost:8100` to access the web interface.
+
+### 3. Use MCP Tools
+
+```bash
+# Start the MCP server
+make start-mcp
+# or
+cd packages/markitdown-mcp-server
+uv run python -m markitdown_mcp_server
+```
+
+## 📖 HOW TO Guides
+
+### HOW TO: Use the Web UI
+
+1. **Start the Web UI**:
+   ```bash
+   make start-web
+   ```
+
+2. **Access the Interface**:
+   - Open your browser to `http://localhost:8100`
+   - Use the drag-and-drop interface to upload files
+   - Select output format and click "Convert"
+
+3. **Batch Processing**:
+   - Upload multiple files at once
+   - Select different output formats for each file
+   - Monitor progress in real-time
+
+4. **API Access**:
+   ```bash
+   # Convert a file via API
+   curl -X POST "http://localhost:8100/api/convert" \
+        -F "file=@document.pdf" \
+        -F "output_format=markdown"
+   ```
+
+### HOW TO: Use MCP Tools
+
+1. **Start the MCP Server**:
+   ```bash
+   make start-mcp
+   ```
+
+2. **Configure Claude Desktop**:
+   Add to your Claude Desktop configuration:
+   ```json
+   {
+     "mcpServers": {
+       "markitdown": {
+         "command": "python",
+         "args": ["-m", "markitdown_mcp_server"],
+         "cwd": "./packages/markitdown-mcp-server"
+       }
+     }
+   }
+   ```
+
+3. **Use in Claude Desktop**:
+   - Ask Claude to convert files: "Convert this PDF to markdown"
+   - Batch process files: "Convert all these documents to markdown"
+   - Check supported formats: "What formats does MarkItDown support?"
+
+### HOW TO: Develop Custom Plugins
+
+1. **Create a Plugin**:
+   ```bash
+   cd packages/markitdown-sample-plugin
+   # Follow the example structure
+   ```
+
+2. **Install Your Plugin**:
+   ```bash
+   pip install -e packages/markitdown-sample-plugin
+   ```
+
+3. **Use Your Plugin**:
+   ```bash
+   markitdown --use-plugins --list-plugins
+   markitdown --use-plugins document.pdf
+   ```
+
+### HOW TO: Deploy to Production
+
+#### Quick Start Deployment
+```bash
+# Using deployment script (Linux/macOS)
+./scripts/deploy.sh
+
+# Using deployment script (Windows)
+scripts\deploy.bat
+
+# Manual Docker deployment
+docker-compose up -d
+```
+
+#### Configurable Directory Deployment
+```bash
+# Document processing workflow
+./scripts/deploy.sh -i /path/to/documents -o /path/to/processed
+
+# Image processing workflow
+./scripts/deploy.sh -i /path/to/images -o /path/to/converted -p 8200
+
+# Batch processing workflow
+./scripts/deploy.sh -i /batch/input -o /batch/output -p 8300
+
+# Development mode with live reloading
+./scripts/deploy.sh -d
+```
+
+#### Production Deployment with Nginx
+```bash
+# Deploy with production profile (includes nginx reverse proxy)
+docker-compose --profile production up -d
+
+# Access via:
+# - Web UI: http://localhost (nginx proxy)
+# - Direct API: http://localhost:8100
+# - Health Check: http://localhost/health
+```
+
+#### Kubernetes Deployment
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: markitdown-web-ui
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: markitdown-web-ui
+  template:
+    metadata:
+      labels:
+        app: markitdown-web-ui
+    spec:
+      containers:
+      - name: markitdown-web-ui
+        image: markitdown-web-ui:latest
+        ports:
+        - containerPort: 8100
+        env:
+        - name: INPUT_DIR
+          value: "/app/input"
+        - name: OUTPUT_DIR
+          value: "/app/output"
+        volumeMounts:
+        - name: input-volume
+          mountPath: /app/input
+        - name: output-volume
+          mountPath: /app/output
+      volumes:
+      - name: input-volume
+        persistentVolumeClaim:
+          claimName: input-pvc
+      - name: output-volume
+        persistentVolumeClaim:
+          claimName: output-pvc
+```
+
+#### Environment Configuration
+Create a `.env` file for production:
+```bash
+# Production settings
+HOST=0.0.0.0
+PORT=8100
+DEBUG=false
+LOG_LEVEL=WARNING
+
+# Configurable directories
+INPUT_DIR=/data/input
+OUTPUT_DIR=/data/output
+
+# Security settings
+SECRET_KEY=your-secure-secret-key
+ALLOWED_HOSTS=your-domain.com,localhost
+
+# Performance settings
+MAX_FILE_SIZE=500MB
+RATE_LIMIT_REQUESTS=1000
+RATE_LIMIT_WINDOW=60
+```
+
+#### Monitoring and Maintenance
+```bash
+# Check application health
+curl http://localhost:8100/health
+
+# View application logs
+docker-compose logs -f markitdown-web-ui
+
+# Check directory status
+curl http://localhost:8100/api/directories/config
+
+# Backup input/output directories
+tar -czf backup-$(date +%Y%m%d).tar.gz /path/to/input /path/to/output
+
+# Update the application
+git pull
+docker-compose down
+docker-compose up -d --build
+```
+
+## 📖 HOW TO Guides
+
+### HOW TO: Use the Web UI
+
+#### Quick Start
+1. **Deploy the application**:
+   ```bash
+   ./scripts/deploy.sh
+   ```
+
+2. **Access the web interface**:
+   - Open your browser to `http://localhost:8100`
+   - Use the drag-and-drop interface to upload files
+   - Select output format and convert
+
+#### API Usage
+```bash
+# Convert a single file
+curl -X POST -F "file=@document.pdf" http://localhost:8100/api/convert
+
+# Batch convert multiple files
+curl -X POST -F "files=@file1.pdf" -F "files=@file2.docx" http://localhost:8100/api/convert/batch
+
+# Detect file format
+curl -X POST -F "file=@unknown_file" http://localhost:8100/api/detect
+
+# List supported formats
+curl http://localhost:8100/api/formats
+
+# Check directory contents
+curl http://localhost:8100/api/directories/input
+curl http://localhost:8100/api/directories/output
+```
+
+### HOW TO: Use MCP Tools
+
+#### Setup MCP Server
+```bash
+# Install MCP server
+pip install -e packages/markitdown-mcp-server
+
+# Start MCP server
+python -m markitdown_mcp_server
+```
+
+#### Use with Claude Desktop
+1. **Configure Claude Desktop**:
+   - Add the MCP server to your Claude Desktop configuration
+   - Point to the MarkItDown MCP server
+
+2. **Use the tools**:
+   - Ask Claude to convert files: "Convert this PDF to markdown"
+   - Batch process files: "Convert all these documents to markdown"
+   - Check supported formats: "What formats does MarkItDown support?"
+
+#### Direct MCP Tool Usage
+```python
+from markitdown_mcp_server.tools.convert import ConvertFileTool
+
+# Convert a file
+tool = ConvertFileTool()
+result = tool.call({
+    "input_path": "document.pdf",
+    "output_format": "markdown"
+})
+print(result["data"]["content"])
+```
+
+### HOW TO: Configure for Different Use Cases
+
+#### Document Processing Workflow
+```bash
+# Deploy with document directories
+./scripts/deploy.sh -i /shared/documents -o /shared/processed
+
+# Access via web UI to upload and convert documents
+# Converted files will be saved to /shared/processed
+```
+
+#### Image Processing Workflow
+```bash
+# Deploy with image directories
+./scripts/deploy.sh -i /photos/raw -o /photos/converted -p 8200
+
+# Upload images via web UI
+# Get markdown descriptions in /photos/converted
+```
+
+#### Batch Processing Workflow
+```bash
+# Deploy with batch directories
+./scripts/deploy.sh -i /batch/input -o /batch/output -p 8300
+
+# Place files in /batch/input
+# Process via API or web UI
+# Results in /batch/output
+```
+
+### HOW TO: Troubleshoot Common Issues
+
+#### Port Already in Use
+```bash
+# Check what's using the port
+lsof -i :8100
+
+# Use a different port
+./scripts/deploy.sh -p 8200
+```
+
+#### Permission Denied
+```bash
+# Fix directory permissions
+sudo chown -R $USER:$USER /path/to/input /path/to/output
+chmod 755 /path/to/input /path/to/output
+```
+
+#### Service Not Starting
+```bash
+# Check Docker status
+docker info
+
+# View application logs
+docker-compose logs -f markitdown-web-ui
+
+# Enable debug mode
+export DEBUG=true
+docker-compose restart markitdown-web-ui
+```
+
+#### File Upload Issues
+```bash
+# Check file size limits
+curl -X POST -F "file=@large_file.pdf" http://localhost:8100/api/convert
+
+# Check supported formats
+curl http://localhost:8100/api/formats
+
+# Test file format detection
+curl -X POST -F "file=@test_file" http://localhost:8100/api/detect
+```
+
+## 🔧 Development
+
+### Prerequisites
 MarkItDown requires Python 3.10 or higher. It is recommended to use a virtual environment to avoid dependency conflicts.
 
 With the standard Python installation, you can create and activate a virtual environment using the following commands:
@@ -64,7 +569,7 @@ conda create -n markitdown python=3.12
 conda activate markitdown
 ```
 
-## Installation
+### Installation
 
 To install MarkItDown, use pip: `pip install 'markitdown[all]'`. Alternatively, you can install it from the source:
 
@@ -74,7 +579,32 @@ cd markitdown
 pip install -e 'packages/markitdown[all]'
 ```
 
-## Usage
+### Development Commands
+
+```bash
+# Setup development environment
+make setup-dev
+
+# Run tests
+make test
+
+# Format code
+make format
+
+# Lint code
+make lint
+
+# Type checking
+make type-check
+
+# Start all services
+make start-all
+
+# Clean up
+make clean
+```
+
+## 📚 Usage
 
 ### Command-Line
 
@@ -183,7 +713,82 @@ docker build -t markitdown:latest .
 docker run --rm -i markitdown:latest < ~/your-file.pdf > output.md
 ```
 
-## Contributing
+## 🚀 Deployment Workflows
+
+### File Conversion Workflow
+```mermaid
+sequenceDiagram
+    participant User
+    participant WebUI
+    participant API
+    participant MarkItDown
+    participant Output
+    
+    User->>WebUI: Upload file(s)
+    WebUI->>API: POST /api/convert
+    API->>MarkItDown: Process file
+    MarkItDown->>Output: Save to configurable directory
+    Output-->>MarkItDown: Success
+    MarkItDown-->>API: Return markdown content
+    API-->>WebUI: Display results
+    WebUI-->>User: Show converted content
+```
+
+### MCP Tools Integration
+```mermaid
+sequenceDiagram
+    participant Claude
+    participant MCP_Server
+    participant MarkItDown
+    participant File_System
+    
+    Claude->>MCP_Server: Request file conversion
+    MCP_Server->>MarkItDown: Call convert_file tool
+    MarkItDown->>File_System: Read input file
+    File_System-->>MarkItDown: File content
+    MarkItDown->>MarkItDown: Convert to markdown
+    MarkItDown-->>MCP_Server: Return markdown content
+    MCP_Server-->>Claude: Display results
+```
+
+### Batch Processing Workflow
+```mermaid
+graph TD
+    A[Upload Multiple Files] --> B[Validate Files]
+    B --> C{Valid Files?}
+    C -->|Yes| D[Process in Parallel]
+    C -->|No| E[Return Errors]
+    D --> F[Convert Each File]
+    F --> G[Save to Output Directory]
+    G --> H[Generate Summary]
+    H --> I[Return Results]
+    E --> I
+```
+
+### Deployment Pipeline
+```mermaid
+graph LR
+    A[Source Code] --> B[Build Docker Image]
+    B --> C[Run Tests]
+    C --> D{Tests Pass?}
+    D -->|Yes| E[Deploy to Container]
+    D -->|No| F[Fail Build]
+    E --> G[Health Check]
+    G --> H{Healthy?}
+    H -->|Yes| I[Service Ready]
+    H -->|No| J[Rollback]
+```
+
+## 📖 Documentation
+
+- **[API Documentation](docs/api-documentation.md)**: Complete API reference
+- **[Integration Guide](docs/integration-guide.md)**: MCP and FastAPI integration
+- **[Deployment Guide](docs/deployment-guide.md)**: Comprehensive deployment instructions
+- **[Package Management](docs/package-management.md)**: Development setup and package structure
+- **[Tool Cards](docs/tool-cards/)**: Individual MCP tool documentation
+- **[Project Plans](docs/plans/)**: Implementation plans and status
+
+## 🤝 Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a
 Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
@@ -239,7 +844,7 @@ You can help by looking at issues or helping review PRs. Any issue or PR is welc
 
 You can also contribute by creating and sharing 3rd party plugins. See `packages/markitdown-sample-plugin` for more details.
 
-## Trademarks
+## 🏷️ Trademarks
 
 This project may contain trademarks or logos for projects, products, or services. Authorized use of Microsoft
 trademarks or logos is subject to and must follow

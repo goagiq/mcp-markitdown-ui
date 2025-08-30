@@ -1,0 +1,126 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "markitdown-workspace"
+dynamic = ["version"]
+description = "MarkItDown MCP Tools and Web UI Workspace"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+keywords = ["markitdown", "mcp", "fastapi", "file-conversion", "markdown"]
+authors = [
+  { name = "MarkItDown Team", email = "team@markitdown.dev" },
+]
+
+[tool.hatch.version]
+path = "packages/markitdown/src/markitdown/__about__.py"
+
+[tool.hatch.workspace]
+packages = [
+  "packages/markitdown",
+  "packages/markitdown-mcp-server", 
+  "packages/markitdown-web-ui",
+  "packages/markitdown-sample-plugin",
+]
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pytest>=7.0.0",
+  "pytest-asyncio>=0.21.0",
+  "pytest-cov>=4.0.0",
+  "httpx>=0.25.0",
+  "black>=23.0.0",
+  "isort>=5.12.0",
+  "mypy>=1.0.0",
+  "ruff>=0.1.0",
+  "pre-commit>=3.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310', 'py311', 'py312']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = ["packages/*/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+  "--strict-markers",
+  "--strict-config",
+  "--cov=markitdown",
+  "--cov=markitdown_mcp_server",
+  "--cov=markitdown_web_ui",
+  "--cov-report=term-missing",
+  "--cov-report=html",
+  "--cov-report=xml",
+]
+
+[tool.coverage.run]
+source = [
+  "packages/markitdown/src/markitdown",
+  "packages/markitdown-mcp-server/src/markitdown_mcp_server",
+  "packages/markitdown-web-ui/src/markitdown_web_ui",
+]
+omit = [
+  "*/tests/*",
+  "*/test_*",
+  "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+  "class .*\\bProtocol\\):",
+  "@(abc\\.)?abstractmethod",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+]
+ignore = [
+  "E501",  # line too long, handled by black
+  "B008",  # do not perform function calls in argument defaults
+  "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]

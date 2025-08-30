@@ -1,0 +1,38 @@
+services:
+  markitdown-web-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: markitdown-web-ui-dev
+    ports:
+      - "8100:8100"  # Expose port 8100 to local PC
+    volumes:
+      # Configurable input/output folder mapping
+      - ${INPUT_DIR:-./input}:/app/input:rw
+      - ${OUTPUT_DIR:-./output}:/app/output:rw
+      # Development: Mount source code for live reloading
+      - ./packages:/app/packages:ro
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8100
+      - INPUT_DIR=/app/input
+      - OUTPUT_DIR=/app/output
+      - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
+      - DEBUG=true
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - markitdown-network
+
+networks:
+  markitdown-network:
+    driver: bridge
+
+volumes:
+  input-data:
+  output-data:

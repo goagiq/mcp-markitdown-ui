@@ -1,0 +1,106 @@
+Tool Card: get_weather_data
+
+General Info
+
+    Name: get_weather_data
+    Title: Weather Data Retriever
+    Version: 1.0.0
+    Author: Example Dev Team
+    Description: Retrieves current weather data for a given location.
+
+Required Libraries
+
+    # Core Python Libraries
+    json
+    logging
+    typing (Dict, List, Any, Optional)
+
+    # HTTP and API Libraries
+    requests>=2.25.0
+
+    # MCP and Strands Integration
+    mcp>=1.13.0
+    strands-agents>=1.6.0
+    strands-agents-tools>=0.2.5
+
+    # Additional Dependencies
+    fastapi>=0.104.0
+    pydantic>=2.5.0
+
+Imports and Decorators
+
+    import requests
+    import json
+    import logging
+    from typing import Dict, Any
+
+    logger = logging.getLogger(__name__)
+
+    # MCP Tool Decorator (if applicable)
+    # @tool("get_weather_data")
+
+Intended Use
+
+    For conversational agents needing lightweight, real-time weather.
+    Read-only access; no side effects.
+
+Out-of-Scope / Limitations
+
+    Only supports city names and ZIP codes.
+    Limited to current weather; no forecast.
+    Requires external API key.
+
+Input Schema
+
+{
+
+  "type": "object",
+
+  "properties": {
+
+    "location": { "type": "string", "description": "City or ZIP" },
+
+    "units": { "type": "string", "enum": ["metric","imperial"], "default": "metric" }
+
+  },
+
+  "required": ["location"]
+
+}
+
+Output Schema
+
+{
+
+  "type": "object",
+
+  "properties": {
+
+    "temperature": { "type": "number", "description": "°C or °F" },
+
+    "conditions": { "type": "string" },
+
+    "humidity": { "type": "number" }
+
+  },
+
+  "required": ["temperature","conditions","humidity"]
+
+}
+
+Example
+
+    Input:
+    { "location": "Baltimore", "units": "imperial" }
+    Output:
+    {
+      "temperature": 72.5,
+      "conditions": "Partly Cloudy",
+      "humidity": 65
+    }
+
+Safety & Reliability
+
+    Validates inputs against schema.
+    Returns error if location cannot be resolved.
+    No PII collected; logs disabled.

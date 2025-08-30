@@ -1,2 +1,4 @@
 *
 !packages/
+!pyproject.toml
+!README.md

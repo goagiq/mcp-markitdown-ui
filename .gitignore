@@ -165,3 +165,10 @@ cython_debug/
 src/.DS_Store
 .DS_Store
 .cursorrules
+
+#input and output files
+input
+output  
+
+#environment
+.env
