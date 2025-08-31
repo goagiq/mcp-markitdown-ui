@@ -1,5 +1,5 @@
-import traceback
 #!/usr/bin/env python3
+import traceback
 """
 Advanced Optimized PDF OCR Converter with enhanced performance features
 Based on VisionOCR repository optimization methods with additional improvements
@@ -40,19 +40,25 @@ class ModelPerformanceTracker:
     
     def __init__(self, cache_file: str = "model_performance_cache.pkl"):
         self.cache_file = cache_file
-        self.performance_data = defaultdict(lambda: {
+        self.performance_data = defaultdict(self._default_performance_data)
+        self.load_performance_data()
+    
+    def _default_performance_data(self):
+        """Default performance data structure"""
+        return {
             'success_count': 0,
             'failure_count': 0,
             'avg_response_time': 0.0,
             'last_used': 0.0
-        })
-        self.load_performance_data()
+        }
     
     def load_performance_data(self):
         """Load performance data from cache"""
         try:
             if os.path.exists(self.cache_file):
-                with open(self.cache_file, 'rb') as f:
+                # Ensure we have access to built-in functions
+                import builtins
+                with builtins.open(self.cache_file, 'rb') as f:
                     self.performance_data = pickle.load(f)
                 logger.info(f"Loaded performance data for {len(self.performance_data)} models")
         except Exception as e:
@@ -61,7 +67,9 @@ class ModelPerformanceTracker:
     def save_performance_data(self):
         """Save performance data to cache"""
         try:
-            with open(self.cache_file, 'wb') as f:
+            # Ensure we have access to built-in functions
+            import builtins
+            with builtins.open(self.cache_file, 'wb') as f:
                 pickle.dump(self.performance_data, f)
         except Exception as e:
             logger.warning(f"Could not save performance data: {e}")
@@ -388,7 +396,22 @@ class AdvancedOptimizedPdfOcrConverter:
 
     def _process_text_based_pdf(self, file_data: bytes, stream_info: StreamInfo) -> DocumentConverterResult:
         """Process text-based PDF using traditional methods"""
-        return self.pdf_converter.convert(file_data, stream_info)
+        try:
+            # Create a temporary file for the PDF converter
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                temp_file.write(file_data)
+                temp_path = temp_file.name
+            
+            try:
+                return self.pdf_converter.convert(temp_path, stream_info)
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+        except Exception as e:
+            logger.error(f"Error processing text-based PDF: {e}")
+            raise
 
     def _process_image_based_pdf_advanced(self, file_data: bytes, stream_info: StreamInfo) -> DocumentConverterResult:
         """Process image-based PDF using advanced optimized techniques"""
@@ -938,7 +961,14 @@ class AdvancedOptimizedPdfOcrConverter:
     def __del__(self):
         """Cleanup when object is destroyed"""
         try:
-            if hasattr(self, 'model_tracker'):
+            if hasattr(self, 'model_tracker') and self.model_tracker:
+                # Import builtins to ensure open is available
+                import builtins
                 self.model_tracker.save_performance_data()
         except Exception as e:
-            logger.warning(f"Error saving performance data: {e}")
+            # Use a more robust error handling approach
+            try:
+                import logging
+                logging.getLogger(__name__).warning(f"Error saving performance data: {e}")
+            except:
+                pass  # If even logging fails, just ignore it

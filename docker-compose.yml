@@ -1,22 +1,25 @@
+version: '3.8'
+
 services:
-  markitdown-web-ui:
+  markitdown-web:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: markitdown-web-ui
     ports:
-      - "8100:8100"  # Expose port 8100 to local PC
-    volumes:
-      # Configurable input/output folder mapping
-      - ${INPUT_DIR:-./input}:/app/input:rw
-      - ${OUTPUT_DIR:-./output}:/app/output:rw
+      - "8100:8100"
     environment:
+      - INPUT_DIR=/app/uploads
+      - OUTPUT_DIR=/app/output
       - HOST=0.0.0.0
       - PORT=8100
-      - INPUT_DIR=/app/input
-      - OUTPUT_DIR=/app/output
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
-      - DEBUG=${DEBUG:-false}
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    volumes:
+      - ./uploads:/app/uploads
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - markitdown_cache:/app/cache
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
@@ -24,6 +27,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 1G
+          cpus: '1.0'
     networks:
       - markitdown-network
 
@@ -38,17 +49,61 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      - markitdown-web-ui
+      - markitdown-web
     restart: unless-stopped
     networks:
       - markitdown-network
     profiles:
       - production
 
+  # Optional: Add monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: markitdown-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - markitdown-network
+    profiles:
+      - monitoring
+
+  # Optional: Add Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: markitdown-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - markitdown-network
+    profiles:
+      - monitoring
+
+volumes:
+  markitdown_cache:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
 networks:
   markitdown-network:
     driver: bridge
-
-volumes:
-  input-data:
-  output-data:

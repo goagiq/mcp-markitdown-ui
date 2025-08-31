@@ -6,7 +6,7 @@ import os
 import zipfile
 import tempfile
 import logging
-from typing import Optional, List
+from typing import Optional, List, BinaryIO, Any
 
 from .._base_converter import DocumentConverter, DocumentConverterResult
 from .._stream_info import StreamInfo
@@ -20,11 +20,33 @@ class ZipConverter(DocumentConverter):
     def __init__(self, markitdown=None):
         self.markitdown = markitdown
     
-    def convert(self, file_path: str, stream_info: Optional[StreamInfo] = None) -> DocumentConverterResult:
+    def accepts(
+        self,
+        file_stream: BinaryIO,
+        stream_info: StreamInfo,
+        **kwargs: Any,
+    ) -> bool:
+        """Check if this converter can handle the given file."""
+        mimetype = (stream_info.mimetype or "").lower()
+        extension = (stream_info.extension or "").lower()
+
+        if extension == '.zip':
+            return True
+        if mimetype == 'application/zip':
+            return True
+        return False
+    
+    def convert(self, file_path_or_stream, stream_info: Optional[StreamInfo] = None, **kwargs) -> DocumentConverterResult:
         """Convert ZIP file to markdown by extracting and processing contents."""
         try:
-            if not os.path.exists(file_path):
-                raise FileNotFoundError(f"File not found: {file_path}")
+            # Handle both file path and stream
+            if isinstance(file_path_or_stream, str):
+                file_path = file_path_or_stream
+                if not os.path.exists(file_path):
+                    raise FileNotFoundError(f"File not found: {file_path}")
+            else:
+                # It's a stream, use convert_stream
+                return self.convert_stream(file_path_or_stream, stream_info, **kwargs)
             
             if not zipfile.is_zipfile(file_path):
                 raise ValueError(f"File is not a valid ZIP file: {file_path}")
@@ -78,7 +100,7 @@ class ZipConverter(DocumentConverter):
             logger.error(f"Error in ZIP conversion: {e}")
             raise
     
-    def convert_stream(self, stream, stream_info: Optional[StreamInfo] = None) -> DocumentConverterResult:
+    def convert_stream(self, stream: BinaryIO, stream_info: Optional[StreamInfo] = None, **kwargs) -> DocumentConverterResult:
         """Convert stream to markdown"""
         import tempfile
         

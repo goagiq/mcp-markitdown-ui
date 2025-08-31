@@ -10,6 +10,7 @@ from ._vision_ocr_converter import VisionOcrConverter
 from ._pdf_converter import PdfConverter
 from ._plain_text_converter import PlainTextConverter
 from ._zip_converter import ZipConverter
+from ._docx_converter import DocxConverter
 
 
 # Create placeholder classes for missing converters
@@ -27,7 +28,6 @@ WikipediaConverter = PlaceholderConverter
 YouTubeConverter = PlaceholderConverter
 IpynbConverter = PlaceholderConverter
 BingSerpConverter = PlaceholderConverter
-DocxConverter = PlaceholderConverter
 XlsxConverter = PlaceholderConverter
 PptxConverter = PlaceholderConverter
 ImageConverter = PlaceholderConverter

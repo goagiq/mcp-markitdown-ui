@@ -17,12 +17,22 @@ class PdfProcessor:
     def __init__(self):
         pass
     
-    def analyze_pdf_type(self, pdf_path: str) -> str:
+    def analyze_pdf_type(self, pdf_input) -> str:
         """Analyze if PDF is text-based or image-based"""
         try:
             import fitz  # PyMuPDF
             
-            doc = fitz.open(pdf_path)
+            # Handle both file path (string) and file data (bytes)
+            if isinstance(pdf_input, str):
+                # File path provided
+                doc = fitz.open(pdf_input)
+            elif isinstance(pdf_input, bytes):
+                # File data provided
+                doc = fitz.open(stream=pdf_input, filetype="pdf")
+            else:
+                logger.error(f"Unsupported input type: {type(pdf_input)}")
+                return "image-based"
+            
             text_content = ""
             
             # Check first few pages for text content
@@ -34,8 +44,10 @@ class PdfProcessor:
             
             # If we have substantial text content, consider it text-based
             if len(text_content.strip()) > 100:
+                logger.info(f"PDF analyzed as text-based (found {len(text_content.strip())} characters)")
                 return "text-based"
             else:
+                logger.info(f"PDF analyzed as image-based (found {len(text_content.strip())} characters)")
                 return "image-based"
                 
         except ImportError:

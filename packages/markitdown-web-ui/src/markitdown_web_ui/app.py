@@ -9,17 +9,23 @@ import logging
 import tempfile
 import traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 # Add the packages directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../markitdown/src'))
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Request
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Request, Form
+from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import uvicorn
+
+import asyncio
+from typing import List, Dict, Any
+from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 try:
     from markitdown import MarkItDown
@@ -35,7 +41,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize MarkItDown
-markitdown = MarkItDown()
+markitdown = MarkItDown(enable_builtins=True)
 
 # Allowed file extensions
 ALLOWED_EXTENSIONS = {
@@ -48,6 +54,126 @@ def allowed_file(filename: str) -> bool:
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+class ConversionResult:
+    """Represents the result of a file conversion"""
+    def __init__(self, filename: str, success: bool, markdown: str = None, error: str = None, processing_time: float = 0):
+        self.filename = filename
+        self.success = success
+        self.markdown = markdown
+        self.error = error
+        self.processing_time = processing_time
+
+async def convert_file(filepath: str) -> ConversionResult:
+    """Convert a single file to markdown"""
+    start_time = time.time()
+    filename = os.path.basename(filepath)
+    
+    try:
+        logger.info(f"Processing file: {filename}")
+        
+        # Convert file using MarkItDown
+        result = markitdown.convert(filepath)
+        
+        processing_time = time.time() - start_time
+        
+        # Save markdown to output directory
+        output_filename = f"{Path(filename).stem}.md"
+        output_path = os.path.join(OUTPUT_DIR, output_filename)
+        
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(result.markdown)
+        
+        logger.info(f"Successfully converted {filename} in {processing_time:.2f}s")
+        
+        return ConversionResult(
+            filename=filename,
+            success=True,
+            markdown=result.markdown,
+            processing_time=processing_time
+        )
+        
+    except Exception as e:
+        processing_time = time.time() - start_time
+        error_msg = f"Conversion failed: {str(e)}"
+        logger.error(f"Error converting file {filename}: {error_msg}")
+        logger.error(f"Traceback: {e}")
+        
+        return ConversionResult(
+            filename=filename,
+            success=False,
+            error=error_msg,
+            processing_time=processing_time
+        )
+
+async def process_bulk_conversion(files: List[UploadFile]) -> Dict[str, Any]:
+    """Process multiple files with parallel execution and progress tracking"""
+    start_time = time.time()
+    results = []
+    
+    # Save uploaded files
+    saved_files = []
+    for file in files:
+        try:
+            filepath = os.path.join(INPUT_DIR, file.filename)
+            with open(filepath, "wb") as buffer:
+                content = await file.read()
+                buffer.write(content)
+            saved_files.append(filepath)
+            logger.info(f"Saved uploaded file: {file.filename}")
+        except Exception as e:
+            logger.error(f"Error saving file {file.filename}: {e}")
+            results.append(ConversionResult(
+                filename=file.filename,
+                success=False,
+                error=f"Failed to save file: {str(e)}"
+            ))
+    
+    # Process files in parallel
+    if saved_files:
+        loop = asyncio.get_event_loop()
+        tasks = [loop.run_in_executor(executor, lambda f=f: asyncio.run(convert_file(f))) for f in saved_files]
+        
+        # Wait for all conversions to complete
+        conversion_results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Handle results
+        for i, result in enumerate(conversion_results):
+            if isinstance(result, Exception):
+                filename = os.path.basename(saved_files[i]) if i < len(saved_files) else "unknown"
+                results.append(ConversionResult(
+                    filename=filename,
+                    success=False,
+                    error=f"Processing exception: {str(result)}"
+                ))
+            else:
+                results.append(result)
+    
+    total_time = time.time() - start_time
+    
+    # Generate summary
+    successful = [r for r in results if r.success]
+    failed = [r for r in results if not r.success]
+    
+    summary = {
+        "total_files": len(files),
+        "successful": len(successful),
+        "failed": len(failed),
+        "total_processing_time": total_time,
+        "average_time_per_file": total_time / len(files) if files else 0,
+        "results": [
+            {
+                "filename": r.filename,
+                "success": r.success,
+                "processing_time": r.processing_time,
+                "error": r.error if not r.success else None,
+                "markdown_length": len(r.markdown) if r.success else 0
+            }
+            for r in results
+        ]
+    }
+    
+    return summary
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application"""
     
@@ -58,15 +184,20 @@ def create_app() -> FastAPI:
     )
     
     # Configure directories
-    input_dir = os.environ.get('INPUT_DIR', '/app/input')
-    output_dir = os.environ.get('OUTPUT_DIR', '/app/output')
+    # Use absolute paths to ensure files are saved in the correct location
+    # Get the workspace root directory (3 levels up from the app.py file to reach project root)
+    current_file = os.path.abspath(__file__)
+    workspace_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+    INPUT_DIR = os.environ.get('INPUT_DIR', os.path.join(workspace_root, 'uploads'))
+    OUTPUT_DIR = os.environ.get('OUTPUT_DIR', os.path.join(workspace_root, 'output'))
     
     # Ensure directories exist
-    os.makedirs(input_dir, exist_ok=True)
-    os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(INPUT_DIR, exist_ok=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     
     # Set up templates
-    templates = Jinja2Templates(directory="templates")
+    templates_dir = os.path.join(os.path.dirname(__file__), "..", "..", "templates")
+    templates = Jinja2Templates(directory=templates_dir)
     
     # Mount static files
     static_dir = os.path.join(os.path.dirname(__file__), "static")
@@ -106,7 +237,7 @@ def create_app() -> FastAPI:
             
             # Save uploaded file
             filename = file.filename
-            filepath = os.path.join(input_dir, filename)
+            filepath = os.path.join(INPUT_DIR, filename)
             
             with open(filepath, "wb") as buffer:
                 content = await file.read()
@@ -119,10 +250,16 @@ def create_app() -> FastAPI:
             
             # Save result to output folder
             output_filename = f"{Path(filename).stem}.md"
-            output_path = os.path.join(output_dir, output_filename)
+            output_path = os.path.join(OUTPUT_DIR, output_filename)
+            
+            logger.info(f"Saving markdown to: {output_path}")
+            logger.info(f"Output directory exists: {os.path.exists(OUTPUT_DIR)}")
+            logger.info(f"Output directory: {OUTPUT_DIR}")
             
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(result.markdown)
+            
+            logger.info(f"Successfully saved markdown file: {output_path}")
             
             # Return result
             return {
@@ -146,6 +283,10 @@ def create_app() -> FastAPI:
     ):
         """Convert multiple uploaded files to markdown"""
         try:
+            logger.info(f"Bulk conversion received {len(files)} files")
+            for i, file in enumerate(files):
+                logger.info(f"File {i}: {file.filename}")
+            
             if not files:
                 raise HTTPException(status_code=400, detail="No files selected")
             
@@ -168,7 +309,7 @@ def create_app() -> FastAPI:
                     
                     # Save uploaded file
                     filename = file.filename
-                    filepath = os.path.join(input_dir, filename)
+                    filepath = os.path.join(INPUT_DIR, filename)
                     
                     with open(filepath, "wb") as buffer:
                         content = await file.read()
@@ -181,7 +322,7 @@ def create_app() -> FastAPI:
                     
                     # Save result to output folder
                     output_filename = f"{Path(filename).stem}.md"
-                    output_path = os.path.join(output_dir, output_filename)
+                    output_path = os.path.join(OUTPUT_DIR, output_filename)
                     
                     with open(output_path, 'w', encoding='utf-8') as f:
                         f.write(result.markdown)
@@ -202,7 +343,7 @@ def create_app() -> FastAPI:
                         "error": str(e)
                     })
             
-            return {
+            response_data = {
                 "success": True,
                 "total_files": len(files),
                 "successful_conversions": len(results),
@@ -210,6 +351,8 @@ def create_app() -> FastAPI:
                 "results": results,
                 "errors": errors
             }
+            logger.info(f"Bulk conversion completed. Returning: {response_data}")
+            return response_data
             
         except Exception as e:
             logger.error(f"Error in bulk conversion: {e}")
@@ -220,7 +363,7 @@ def create_app() -> FastAPI:
     async def download_file(filename: str):
         """Download converted markdown file"""
         try:
-            file_path = os.path.join(output_dir, filename)
+            file_path = os.path.join(OUTPUT_DIR, filename)
             if not os.path.exists(file_path):
                 raise HTTPException(status_code=404, detail="File not found")
             
@@ -244,8 +387,8 @@ def create_app() -> FastAPI:
             output_files = []
             
             # List input files
-            for file in os.listdir(input_dir):
-                file_path = os.path.join(input_dir, file)
+            for file in os.listdir(INPUT_DIR):
+                file_path = os.path.join(INPUT_DIR, file)
                 if os.path.isfile(file_path):
                     input_files.append({
                         "name": file,
@@ -253,8 +396,8 @@ def create_app() -> FastAPI:
                     })
             
             # List output files
-            for file in os.listdir(output_dir):
-                file_path = os.path.join(output_dir, file)
+            for file in os.listdir(OUTPUT_DIR):
+                file_path = os.path.join(OUTPUT_DIR, file)
                 if os.path.isfile(file_path):
                     output_files.append({
                         "name": file,
@@ -273,9 +416,11 @@ def create_app() -> FastAPI:
     
     return app
 
+# Create the app instance for uvicorn
+app = create_app()
+
 # For direct execution
 if __name__ == "__main__":
-    app = create_app()
     port = int(os.environ.get('PORT', 8100))
     host = os.environ.get('HOST', '0.0.0.0')
     

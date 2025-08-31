@@ -169,6 +169,15 @@ src/.DS_Store
 #input and output files
 input
 output  
+packages\uploads
+
+# Test files and outputs
+test/*.pyc
+test/__pycache__/
+test/.pytest_cache/
+test/data/
+test/output/
+*.test_output.md
 
 #environment
 .env

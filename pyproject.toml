@@ -88,20 +88,15 @@ warn_unreachable = true
 strict_equality = true
 
 [tool.pytest.ini_options]
-testpaths = ["packages/*/tests"]
+testpaths = ["test"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
   "--strict-markers",
   "--strict-config",
-  "--cov=markitdown",
-  "--cov=markitdown_mcp_server",
-  "--cov=markitdown_web_ui",
-  "--cov-report=term-missing",
-  "--cov-report=html",
-  "--cov-report=xml",
 ]
+norecursedirs = ["test/*/old", "test/*/__pycache__"]
 
 [tool.coverage.run]
 source = [

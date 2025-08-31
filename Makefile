@@ -20,6 +20,9 @@ help:
 	@echo ""
 	@echo "Testing:"
 	@echo "  test          - Run all tests"
+	@echo "  test-unit     - Run unit tests only"
+	@echo "  test-integration - Run integration tests only"
+	@echo "  test-performance - Run performance tests only"
 	@echo "  test-cov      - Run tests with coverage"
 	@echo ""
 	@echo "Code Quality:"
@@ -79,13 +82,28 @@ start-all:
 
 # Run tests
 test:
-	@echo "🧪 Running tests..."
-	@pytest
+	@echo "🧪 Running all tests..."
+	@python test/run_tests.py --type all
+
+# Run unit tests
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@python test/run_tests.py --type unit
+
+# Run integration tests
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@python test/run_tests.py --type integration
+
+# Run performance tests
+test-performance:
+	@echo "🧪 Running performance tests..."
+	@python test/run_tests.py --type performance
 
 # Run tests with coverage
 test-cov:
 	@echo "🧪 Running tests with coverage..."
-	@pytest --cov=markitdown --cov=markitdown_mcp_server --cov=markitdown_web_ui --cov-report=html --cov-report=term-missing
+	@python test/run_tests.py --type all --coverage
 
 # Run linting
 lint:

@@ -29,6 +29,7 @@ from .converters import (
     VisionOcrConverter,
     EnhancedPdfConverter,
     AdvancedOptimizedPdfOcrConverter,
+    DocxConverter,
 )
 
 from ._base_converter import DocumentConverter, DocumentConverterResult
@@ -182,6 +183,12 @@ class MarkItDown:
                 self.register_converter(PdfConverter())
             except Exception as e:
                 logger.warning(f"Could not register PdfConverter: {e}")
+
+            # Register DocxConverter for Word documents
+            try:
+                self.register_converter(DocxConverter(), priority=PRIORITY_SPECIFIC_FILE_FORMAT)
+            except Exception as e:
+                logger.warning(f"Could not register DocxConverter: {e}")
 
             # Register Advanced Optimized PDF OCR converter
             try:
