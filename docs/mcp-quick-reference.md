@@ -2,12 +2,14 @@
 
 ## Server Configuration
 
-### Endpoint
-- **URL**: `http://127.0.0.1:8200/mcp`
-- **Transport**: Streamable HTTP
+### Endpoints
+- **Web UI**: `http://127.0.0.1:8200/` (redirects to `/web`)
+- **Web UI Direct**: `http://127.0.0.1:8200/web`
+- **MCP Server**: `http://127.0.0.1:8200/mcp`
+- **Health Check**: `http://127.0.0.1:8200/health`
 - **Port**: 8200
 
-### Required Headers
+### Required Headers (MCP)
 ```
 Accept: application/json, text/event-stream
 Content-Type: application/json
@@ -46,37 +48,36 @@ mcp.mount_http(mcp_app)
 from fastapi import FastAPI
 from fastapi_mcp import FastApiMCP
 
-# Single FastAPI app
+# Create the main FastAPI app
 app = FastAPI()
 
-# Define endpoints with operation_id decorators
-@app.get("/health", operation_id="get_health")
-async def health():
-    return {"status": "healthy"}
+# Create and mount the web UI
+web_app = create_web_app()
+app.mount("/web", web_app)
 
-@app.post("/convert", operation_id="convert_document")
-async def convert_document():
-    # Implementation
-    pass
+# Add redirect from root to web UI
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/web")
 
-# Create MCP server from the same app
-mcp = FastApiMCP(app, include_operations=[
+# Create MCP server from separate app
+mcp = FastApiMCP(mcp_app, include_operations=[
     "convert_document", 
     "get_health"
 ])
 
-# Mount MCP to the same app
-mcp.mount_http(mount_path="/mcp")
+# Mount MCP to the main app
+mcp.mount_http(app, mount_path="/mcp")
 
-# Run single app
+# Run combined server
 uvicorn.run(app, host="127.0.0.1", port=8200)
 ```
 
 **Advantages of this approach:**
-- Single FastAPI app (simpler)
+- Single server with multiple capabilities
+- Web UI + MCP server in one process
 - No port conflicts
-- Easier deployment
-- Better resource management
+- Easier deployment and management
 
 ## Quick Start
 
@@ -91,18 +92,32 @@ python main.py
 curl http://127.0.0.1:8200/health
 ```
 
-### 3. Test MCP Client
+### 3. Access Web UI
+```bash
+# Open in browser: http://127.0.0.1:8200
+# Or directly: http://127.0.0.1:8200/web
+```
+
+### 4. Test MCP Client
 ```bash
 python simple_mcp_client.py
 ```
 
 ## Available Tools
 
+### MCP Tools
 | Tool | Description | Parameters |
 |------|-------------|------------|
 | `convert_document` | Convert document to markdown | `file_path`, `file_content`, `file_name` |
 | `list_supported_formats` | List supported formats | None |
 | `detect_format` | Detect document format | `file_path`, `file_content` |
+
+### Web UI Features
+- **Multiple file upload** with drag & drop
+- **Bulk conversion** processing
+- **Real-time progress** tracking
+- **File validation** and error handling
+- **Download converted** markdown files
 
 ## Protocol Flow
 
@@ -160,9 +175,10 @@ python simple_mcp_client.py
 
 ## Key Files
 
-- `main.py` - MCP server entry point
-- `deployment.py` - FastAPI application
-- `simple_mcp_client.py` - Test client
+- `main.py` - Combined server entry point (Web UI + MCP)
+- `deployment.py` - MCP FastAPI application
+- `packages/markitdown-web-ui/src/markitdown_web_ui/app.py` - Web UI application
+- `simple_mcp_client.py` - MCP test client
 - `requirements-mcp.txt` - Dependencies
 
 ## Why We Had Trouble Initially
@@ -173,11 +189,12 @@ The official FastAPI-MCP documentation shows a pattern with two separate FastAPI
 3. **Leads to errors** - Port conflicts, routing issues
 4. **Harder to debug** - More moving parts
 
-Our working solution uses a **single FastAPI app** with `mount_path="/mcp"`, which is:
-- ✅ **Simpler** - One app, one port
-- ✅ **More reliable** - No conflicts
-- ✅ **Easier to deploy** - Single process
-- ✅ **Better documented** - Clear separation of concerns
+Our working solution uses a **combined server approach** with:
+- ✅ **Single server** - Web UI + MCP in one process
+- ✅ **Multiple capabilities** - Both web interface and MCP protocol
+- ✅ **No conflicts** - Proper mounting and routing
+- ✅ **Easier deployment** - One process to manage
+- ✅ **Better user experience** - Web UI for humans, MCP for AI clients
 
 ## Client Configuration
 
@@ -207,4 +224,10 @@ taskkill //PID <PID> //F
 
 # Test MCP endpoint
 python simple_mcp_client.py
+
+# Test web UI
+curl -L http://127.0.0.1:8200/
+
+# Test web UI direct
+curl http://127.0.0.1:8200/web
 ```

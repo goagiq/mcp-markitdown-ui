@@ -3,10 +3,10 @@ Tool Card: detect_format
 General Info
 
     Name: detect_format
-    Title: File Format Detector
+    Title: Document Format Detector
     Version: 1.0.0
     Author: MarkItDown Team
-    Description: Detects the format and type of a file using multiple detection methods including file extension, magic bytes, and content analysis.
+    Description: Detects the format of a document based on file extension or uploaded file.
 
 Required Libraries
 
@@ -14,67 +14,63 @@ Required Libraries
     json
     logging
     typing (Dict, List, Any, Optional)
+    os
     pathlib
-    mimetypes
 
-    # MCP and Integration Libraries
-    mcp>=1.0.0
-    fastapi-mcp>=0.4.0
-
-    # MarkItDown Core
-    markitdown[all]>=0.1.3
-
-    # Additional Dependencies
+    # HTTP and API Libraries
     fastapi>=0.104.0
     pydantic>=2.5.0
-    python-magic>=0.4.27
-    aiofiles>=23.0.0
+    python-multipart>=0.0.6
+
+    # MCP and FastAPI Integration
+    fastapi-mcp>=1.0.0
+    uvicorn[standard]>=0.24.0
 
 Imports and Decorators
 
-    import json
+    from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+    from pydantic import BaseModel
+    from typing import Optional
     import logging
-    import mimetypes
-    from typing import Dict, Any, Optional
+    import os
     from pathlib import Path
-    import magic
 
     logger = logging.getLogger(__name__)
 
-    # MCP Tool Decorator
-    # @tool("detect_format")
+    # FastAPI MCP Decorator
+    @app.post("/detect_format", operation_id="detect_format")
 
 Intended Use
 
-    For identifying file formats before conversion processing.
-    Supports both local files and remote URLs.
-    Provides confidence scores and detailed format information.
-    Used for format validation and conversion planning.
+    For AI assistants and MCP clients to identify document formats before conversion.
+    Supports file upload or file path input methods.
+    Provides format validation and compatibility checking.
 
 Out-of-Scope / Limitations
 
-    Requires file to be accessible (local or remote).
-    Some formats may be ambiguous and require additional analysis.
-    Remote URLs must be publicly accessible.
-    Large files may take longer to analyze.
+    Only detects format by file extension, not content analysis.
+    Requires file upload or valid file path.
+    Does not validate file content integrity.
+    Limited to predefined format mappings.
 
 Input Schema
 
 {
   "type": "object",
   "properties": {
-    "file_path": { 
-      "type": "string", 
-      "description": "Path to file to analyze (local or URL)" 
+    "file": {
+      "type": "object",
+      "description": "Uploaded file (multipart/form-data)"
     },
-    "analysis_depth": { 
-      "type": "string", 
-      "enum": ["basic", "detailed", "full"], 
-      "default": "detailed",
-      "description": "Level of format analysis to perform"
+    "file_path": {
+      "type": "string",
+      "description": "Path to the document file"
     }
   },
-  "required": ["file_path"]
+  "anyOf": [
+    {"required": ["file"]},
+    {"required": ["file_path"]}
+  ]
 }
 
 Output Schema
@@ -82,59 +78,40 @@ Output Schema
 {
   "type": "object",
   "properties": {
-    "success": { "type": "boolean" },
-    "file_path": { "type": "string" },
-    "detected_format": { "type": "string" },
-    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-    "mime_type": { "type": "string" },
-    "metadata": {
-      "type": "object",
-      "properties": {
-        "extension": { "type": "string" },
-        "file_size": { "type": "number" },
-        "detection_method": { "type": "string" },
-        "alternative_formats": { 
-          "type": "array", 
-          "items": { "type": "string" } 
-        },
-        "is_supported": { "type": "boolean" },
-        "converter_available": { "type": "boolean" }
-      }
+    "format": {
+      "type": "string",
+      "description": "Detected document format"
     },
-    "error": { "type": "string" }
+    "error": {
+      "type": "string",
+      "description": "Error message if detection failed"
+    }
   },
-  "required": ["success", "file_path", "detected_format", "confidence"]
+  "required": ["format"]
 }
 
 Example
 
-    Input:
-    { 
-      "file_path": "/path/to/document.pdf", 
-      "analysis_depth": "detailed"
-    }
+    Input (file_path):
+    { "file_path": "/path/to/document.pdf" }
+    
     Output:
     {
-      "success": true,
-      "file_path": "/path/to/document.pdf",
-      "detected_format": "PDF Document",
-      "confidence": 0.95,
-      "mime_type": "application/pdf",
-      "metadata": {
-        "extension": ".pdf",
-        "file_size": 1024000,
-        "detection_method": "magic_bytes",
-        "alternative_formats": ["PDF/A", "PDF/X"],
-        "is_supported": true,
-        "converter_available": true
-      }
+      "format": "PDF"
+    }
+
+    Input (file upload):
+    { "file": "uploaded_file.docx" }
+    
+    Output:
+    {
+      "format": "DOCX"
     }
 
 Safety & Reliability
 
-    Validates file existence and accessibility.
-    Uses multiple detection methods for accuracy.
-    Handles corrupted or incomplete files gracefully.
-    Provides confidence scores for detection reliability.
-    Logs format detection attempts for monitoring.
-    Sanitizes file paths to prevent security issues.
+    Validates file existence before detection.
+    Handles unknown extensions gracefully.
+    Returns consistent format names.
+    No file content processing required.
+    Safe for various file types.
