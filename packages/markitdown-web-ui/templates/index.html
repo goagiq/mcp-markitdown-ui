@@ -135,6 +135,24 @@
             transform: none;
         }
 
+        .upload-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .upload-options .convert-btn {
+            flex: 1;
+        }
+
+        .bulk-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        }
+
+        .bulk-btn:hover {
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
         .result {
             margin-top: 30px;
             padding: 20px;
@@ -242,16 +260,19 @@
 
         <div class="upload-area" id="uploadArea">
             <div class="upload-icon">📁</div>
-            <div class="upload-text">Drop your file here or click to browse</div>
-            <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.html,.htm,.epub,.csv,.zip">
+            <div class="upload-text">Drop your files here or click to browse</div>
+            <input type="file" id="fileInput" class="file-input" accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.txt,.md,.html,.htm,.epub,.csv,.zip" multiple>
         </div>
 
         <div class="file-info" id="fileInfo">
-            <h4>Selected File</h4>
+            <h4>Selected Files</h4>
             <div class="file-details" id="fileDetails"></div>
         </div>
 
-        <button class="convert-btn" id="convertBtn" disabled>Convert to Markdown</button>
+        <div class="upload-options">
+            <button class="convert-btn" id="convertSingleBtn" disabled>Convert Single File</button>
+            <button class="convert-btn bulk-btn" id="convertBulkBtn" disabled>Convert All Files</button>
+        </div>
 
         <div class="loading" id="loading">
             <div class="spinner"></div>
@@ -266,11 +287,12 @@
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('fileInfo');
         const fileDetails = document.getElementById('fileDetails');
-        const convertBtn = document.getElementById('convertBtn');
+        const convertSingleBtn = document.getElementById('convertSingleBtn');
+        const convertBulkBtn = document.getElementById('convertBulkBtn');
         const loading = document.getElementById('loading');
         const result = document.getElementById('result');
 
-        let selectedFile = null;
+        let selectedFiles = [];
 
         // Drag and drop functionality
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -287,31 +309,48 @@
         uploadArea.addEventListener('drop', (e) => {
             e.preventDefault();
             uploadArea.classList.remove('dragover');
-            const files = e.dataTransfer.files;
+            const files = Array.from(e.dataTransfer.files);
             if (files.length > 0) {
-                handleFileSelect(files[0]);
+                handleFileSelect(files);
             }
         });
 
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
-                handleFileSelect(e.target.files[0]);
+                const files = Array.from(e.target.files);
+                handleFileSelect(files);
             }
         });
 
-        function handleFileSelect(file) {
-            selectedFile = file;
+        function handleFileSelect(files) {
+            selectedFiles = files;
             
             // Update file info display
+            let fileListHTML = '';
+            let totalSize = 0;
+            
+            files.forEach((file, index) => {
+                totalSize += file.size;
+                fileListHTML += `
+                    <div style="margin-bottom: 10px; padding: 8px; background: #f8f9fa; border-radius: 5px;">
+                        <strong>${index + 1}. ${file.name}</strong><br>
+                        <small>Size: ${formatFileSize(file.size)} | Type: ${file.type || 'Unknown'}</small>
+                    </div>
+                `;
+            });
+            
             fileDetails.innerHTML = `
-                <strong>Name:</strong> ${file.name}<br>
-                <strong>Size:</strong> ${formatFileSize(file.size)}<br>
-                <strong>Type:</strong> ${file.type || 'Unknown'}
+                <div style="margin-bottom: 10px;">
+                    <strong>Total Files:</strong> ${files.length}<br>
+                    <strong>Total Size:</strong> ${formatFileSize(totalSize)}
+                </div>
+                ${fileListHTML}
             `;
             fileInfo.style.display = 'block';
             
-            // Enable convert button
-            convertBtn.disabled = false;
+            // Enable appropriate buttons
+            convertSingleBtn.disabled = files.length === 0;
+            convertBulkBtn.disabled = files.length === 0;
             
             // Hide any previous results
             result.style.display = 'none';
@@ -325,17 +364,29 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        convertBtn.addEventListener('click', async () => {
-            if (!selectedFile) return;
+        convertSingleBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+            if (selectedFiles.length > 1) {
+                showResult('error', `
+                    <h3>❌ Multiple Files Selected</h3>
+                    <div class="result-content">
+                        <p>Please use "Convert All Files" for multiple files, or select only one file for single conversion.</p>
+                    </div>
+                `);
+                return;
+            }
 
+            const file = selectedFiles[0];
+            
             // Show loading
             loading.style.display = 'block';
-            convertBtn.disabled = true;
+            convertSingleBtn.disabled = true;
+            convertBulkBtn.disabled = true;
             result.style.display = 'none';
 
             try {
                 const formData = new FormData();
-                formData.append('file', selectedFile);
+                formData.append('file', file);
 
                 const response = await fetch('/convert', {
                     method: 'POST',
@@ -373,7 +424,93 @@
                 `);
             } finally {
                 loading.style.display = 'none';
-                convertBtn.disabled = false;
+                convertSingleBtn.disabled = false;
+                convertBulkBtn.disabled = false;
+            }
+        });
+
+        convertBulkBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            // Show loading
+            loading.style.display = 'block';
+            convertSingleBtn.disabled = true;
+            convertBulkBtn.disabled = true;
+            result.style.display = 'none';
+
+            try {
+                const formData = new FormData();
+                selectedFiles.forEach(file => {
+                    formData.append('files', file);
+                });
+
+                const response = await fetch('/convert-bulk', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    let resultsHTML = '';
+                    let errorsHTML = '';
+                    
+                    // Show successful conversions
+                    if (data.results && data.results.length > 0) {
+                        resultsHTML = '<h4>✅ Successful Conversions:</h4>';
+                        data.results.forEach(result => {
+                            resultsHTML += `
+                                <div style="margin-bottom: 15px; padding: 10px; background: #d4edda; border-radius: 5px;">
+                                    <strong>${result.filename}</strong> → ${result.output_filename}<br>
+                                    <small>Text Length: ${result.text_length} characters</small><br>
+                                    <a href="${result.download_url}" class="download-btn" style="margin-top: 5px; display: inline-block;">Download</a>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    // Show errors
+                    if (data.errors && data.errors.length > 0) {
+                        errorsHTML = '<h4>❌ Failed Conversions:</h4>';
+                        data.errors.forEach(error => {
+                            errorsHTML += `
+                                <div style="margin-bottom: 10px; padding: 10px; background: #f8d7da; border-radius: 5px;">
+                                    <strong>${error.filename}</strong><br>
+                                    <small>Error: ${error.error}</small>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    showResult('success', `
+                        <h3>📊 Bulk Conversion Complete!</h3>
+                        <div class="result-content">
+                            <p><strong>Total Files:</strong> ${data.total_files}</p>
+                            <p><strong>Successful:</strong> ${data.successful_conversions}</p>
+                            <p><strong>Failed:</strong> ${data.failed_conversions}</p>
+                            ${resultsHTML}
+                            ${errorsHTML}
+                        </div>
+                    `);
+                } else {
+                    showResult('error', `
+                        <h3>❌ Bulk Conversion Failed</h3>
+                        <div class="result-content">
+                            <p>${data.detail || 'An error occurred during bulk conversion.'}</p>
+                        </div>
+                    `);
+                }
+            } catch (error) {
+                showResult('error', `
+                    <h3>❌ Error</h3>
+                    <div class="result-content">
+                        <p>Network error: ${error.message}</p>
+                    </div>
+                `);
+            } finally {
+                loading.style.display = 'none';
+                convertSingleBtn.disabled = false;
+                convertBulkBtn.disabled = false;
             }
         });
 

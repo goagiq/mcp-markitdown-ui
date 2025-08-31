@@ -15,7 +15,7 @@ from typing import List, Optional
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../../markitdown/src'))
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -74,7 +74,7 @@ def create_app() -> FastAPI:
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
     
     @app.get("/", response_class=HTMLResponse)
-    async def index(request):
+    async def index(request: Request):
         """Main page with file upload form"""
         return templates.TemplateResponse("index.html", {"request": request})
     
@@ -138,6 +138,83 @@ def create_app() -> FastAPI:
             logger.error(f"Error converting file: {e}")
             logger.error(traceback.format_exc())
             raise HTTPException(status_code=500, detail=f"Conversion failed: {str(e)}")
+
+    @app.post("/convert-bulk")
+    async def convert_bulk_files(
+        background_tasks: BackgroundTasks,
+        files: List[UploadFile] = File(...)
+    ):
+        """Convert multiple uploaded files to markdown"""
+        try:
+            if not files:
+                raise HTTPException(status_code=400, detail="No files selected")
+            
+            results = []
+            errors = []
+            
+            for file in files:
+                try:
+                    # Validate file
+                    if not file.filename:
+                        errors.append({"filename": "Unknown", "error": "No filename provided"})
+                        continue
+                    
+                    if not allowed_file(file.filename):
+                        errors.append({
+                            "filename": file.filename, 
+                            "error": f"File type not allowed. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+                        })
+                        continue
+                    
+                    # Save uploaded file
+                    filename = file.filename
+                    filepath = os.path.join(input_dir, filename)
+                    
+                    with open(filepath, "wb") as buffer:
+                        content = await file.read()
+                        buffer.write(content)
+                    
+                    logger.info(f"Processing file: {filename}")
+                    
+                    # Convert file using MarkItDown
+                    result = markitdown.convert(filepath)
+                    
+                    # Save result to output folder
+                    output_filename = f"{Path(filename).stem}.md"
+                    output_path = os.path.join(output_dir, output_filename)
+                    
+                    with open(output_path, 'w', encoding='utf-8') as f:
+                        f.write(result.markdown)
+                    
+                    results.append({
+                        "success": True,
+                        "filename": filename,
+                        "output_filename": output_filename,
+                        "text_length": len(result.markdown),
+                        "preview": result.markdown[:200] + '...' if len(result.markdown) > 200 else result.markdown,
+                        "download_url": f"/download/{output_filename}"
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Error converting file {file.filename}: {e}")
+                    errors.append({
+                        "filename": file.filename,
+                        "error": str(e)
+                    })
+            
+            return {
+                "success": True,
+                "total_files": len(files),
+                "successful_conversions": len(results),
+                "failed_conversions": len(errors),
+                "results": results,
+                "errors": errors
+            }
+            
+        except Exception as e:
+            logger.error(f"Error in bulk conversion: {e}")
+            logger.error(traceback.format_exc())
+            raise HTTPException(status_code=500, detail=f"Bulk conversion failed: {str(e)}")
     
     @app.get("/download/{filename}")
     async def download_file(filename: str):

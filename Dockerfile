@@ -23,6 +23,9 @@ RUN pip install uv
 COPY pyproject.toml ./
 COPY README.md ./
 
+# Copy the entire workspace
+COPY packages/ ./packages/
+
 # Create virtual environment and install dependencies using UV
 RUN uv venv
 
@@ -31,6 +34,9 @@ RUN mkdir -p /app/input /app/output
 
 # Install markitdown with Vision OCR dependencies
 RUN pip install -e ".[vision-ocr]"
+
+# Install the web-ui package
+RUN pip install -e "./packages/markitdown-web-ui"
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app

@@ -14,7 +14,7 @@ import time
 import threading
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, BinaryIO
 import io
 from collections import defaultdict
 import pickle
@@ -256,6 +256,36 @@ class AdvancedOptimizedPdfOcrConverter:
         logger.info(f"Advanced features: caching={enable_caching}, smart_selection={enable_smart_model_selection}, "
                    f"quality_assessment={enable_quality_assessment}")
 
+    def accepts(
+        self,
+        file_stream: BinaryIO,
+        stream_info: StreamInfo,
+        **kwargs: Any,
+    ) -> bool:
+        """
+        Check if this converter can handle the given file.
+        
+        Args:
+            file_stream: File stream to check
+            stream_info: Stream information
+            **kwargs: Additional arguments
+            
+        Returns:
+            True if converter can handle the file, False otherwise
+        """
+        mimetype = (stream_info.mimetype or "").lower()
+        extension = (stream_info.extension or "").lower()
+        
+        # Check file extension
+        if extension in ['.pdf']:
+            return True
+        
+        # Check MIME type
+        if mimetype.startswith('application/pdf'):
+            return True
+        
+        return False
+
     def _setup_cache(self):
         """Setup caching directory"""
         try:
@@ -296,12 +326,25 @@ class AdvancedOptimizedPdfOcrConverter:
         except Exception as e:
             logger.warning(f"Error saving cache: {e}")
 
-    def convert(self, file_data: bytes, stream_info: StreamInfo) -> DocumentConverterResult:
+    def convert(self, file_path_or_stream, stream_info: Optional[StreamInfo] = None, **kwargs) -> DocumentConverterResult:
         """
         Convert PDF using advanced optimized OCR techniques
         """
         try:
-            logger.info(f"Starting advanced optimized PDF conversion for {stream_info.filename}")
+            # Handle both file path (string) and file stream (BinaryIO)
+            if isinstance(file_path_or_stream, str):
+                # File path provided
+                with open(file_path_or_stream, 'rb') as f:
+                    file_data = f.read()
+                filename = stream_info.filename if stream_info and stream_info.filename else os.path.basename(file_path_or_stream)
+            else:
+                # File stream provided
+                file_data = file_path_or_stream.read()
+                filename = stream_info.filename if stream_info and stream_info.filename else "unknown"
+                # Reset stream position
+                file_path_or_stream.seek(0)
+            
+            logger.info(f"Starting advanced optimized PDF conversion for {filename}")
             
             # Analyze PDF type
             pdf_type = self.pdf_processor.analyze_pdf_type(file_data)
@@ -318,6 +361,29 @@ class AdvancedOptimizedPdfOcrConverter:
             logger.error(f"Error in advanced optimized PDF conversion: {e}")
             import traceback
             logger.error(f"Full traceback: {traceback.format_exc()}")
+            raise
+
+    def convert_stream(self, stream: BinaryIO, stream_info: Optional[StreamInfo] = None, **kwargs) -> DocumentConverterResult:
+        """Convert stream to markdown"""
+        try:
+            # Read stream data
+            file_data = stream.read()
+            
+            # Create a temporary file to process
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                temp_file.write(file_data)
+                temp_path = temp_file.name
+            
+            try:
+                return self.convert(temp_path, stream_info)
+            finally:
+                # Clean up temporary file
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
+                    
+        except Exception as e:
+            logger.error(f"Error in stream conversion: {e}")
             raise
 
     def _process_text_based_pdf(self, file_data: bytes, stream_info: StreamInfo) -> DocumentConverterResult:

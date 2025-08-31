@@ -1,3 +1,4 @@
+import logging
 import mimetypes
 import os
 import re
@@ -16,29 +17,15 @@ import magika
 import charset_normalizer
 import codecs
 
+logger = logging.getLogger(__name__)
+
 from ._stream_info import StreamInfo
 from ._uri_utils import parse_data_uri, file_uri_to_path
 
 from .converters import (
     PlainTextConverter,
-    HtmlConverter,
-    RssConverter,
-    WikipediaConverter,
-    YouTubeConverter,
-    IpynbConverter,
-    BingSerpConverter,
     PdfConverter,
-    DocxConverter,
-    XlsxConverter,
-    XlsConverter,
-    PptxConverter,
-    ImageConverter,
-    AudioConverter,
-    OutlookMsgConverter,
     ZipConverter,
-    EpubConverter,
-    DocumentIntelligenceConverter,
-    CsvConverter,
     VisionOcrConverter,
     EnhancedPdfConverter,
     AdvancedOptimizedPdfOcrConverter,
@@ -174,33 +161,33 @@ class MarkItDown:
             # Register converters for successful browsing operations
             # Later registrations are tried first / take higher priority than earlier registrations
             # To this end, the most specific converters should appear below the most generic converters
-            self.register_converter(
-                PlainTextConverter(), priority=PRIORITY_GENERIC_FILE_FORMAT
-            )
-            self.register_converter(
-                ZipConverter(markitdown=self), priority=PRIORITY_GENERIC_FILE_FORMAT
-            )
-            self.register_converter(
-                HtmlConverter(), priority=PRIORITY_GENERIC_FILE_FORMAT
-            )
-            self.register_converter(RssConverter())
-            self.register_converter(WikipediaConverter())
-            self.register_converter(YouTubeConverter())
-            self.register_converter(BingSerpConverter())
-            self.register_converter(DocxConverter())
-            self.register_converter(XlsxConverter())
-            self.register_converter(XlsConverter())
-            self.register_converter(PptxConverter())
-            self.register_converter(AudioConverter())
-            self.register_converter(ImageConverter())
-            self.register_converter(IpynbConverter())
-            self.register_converter(PdfConverter())
+            
+            # Only register converters that actually exist
+            try:
+                self.register_converter(
+                    PlainTextConverter(), priority=PRIORITY_GENERIC_FILE_FORMAT
+                )
+            except Exception as e:
+                logger.warning(f"Could not register PlainTextConverter: {e}")
+            
+            try:
+                self.register_converter(
+                    ZipConverter(markitdown=self), priority=PRIORITY_GENERIC_FILE_FORMAT
+                )
+            except Exception as e:
+                logger.warning(f"Could not register ZipConverter: {e}")
+            
+            # Register PdfConverter (this one exists)
+            try:
+                self.register_converter(PdfConverter())
+            except Exception as e:
+                logger.warning(f"Could not register PdfConverter: {e}")
 
             # Register Advanced Optimized PDF OCR converter
-            self.register_converter(AdvancedOptimizedPdfOcrConverter(), priority=PRIORITY_SPECIFIC_FILE_FORMAT)
-            self.register_converter(OutlookMsgConverter())
-            self.register_converter(EpubConverter())
-            self.register_converter(CsvConverter())
+            try:
+                self.register_converter(AdvancedOptimizedPdfOcrConverter(), priority=PRIORITY_SPECIFIC_FILE_FORMAT)
+            except Exception as e:
+                logger.warning(f"Could not register AdvancedOptimizedPdfOcrConverter: {e}")
             
             # Register Enhanced PDF converter if enhanced_pdf is enabled
             enhanced_pdf_enabled = kwargs.get("enhanced_pdf", False)
@@ -644,10 +631,10 @@ class MarkItDown:
 
                 if res is not None:
                     # Normalize the content
-                    res.text_content = "\n".join(
-                        [line.rstrip() for line in re.split(r"\r?\n", res.text_content)]
+                    res.markdown = "\n".join(
+                        [line.rstrip() for line in re.split(r"\r?\n", res.markdown)]
                     )
-                    res.text_content = re.sub(r"\n{3,}", "\n\n", res.text_content)
+                    res.markdown = re.sub(r"\n{3,}", "\n\n", res.markdown)
                     return res
 
         # If we got this far without success, report any exceptions

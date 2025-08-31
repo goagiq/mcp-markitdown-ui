@@ -3,9 +3,14 @@ MarkItDown converters package
 """
 
 # Import only the converters that actually exist
-from ._advanced_optimized_pdf_ocr_converter import AdvancedOptimizedPdfOcrConverter
+from ._advanced_optimized_pdf_ocr_converter import (
+    AdvancedOptimizedPdfOcrConverter
+)
 from ._vision_ocr_converter import VisionOcrConverter
 from ._pdf_converter import PdfConverter
+from ._plain_text_converter import PlainTextConverter
+from ._zip_converter import ZipConverter
+
 
 # Create placeholder classes for missing converters
 class PlaceholderConverter:
@@ -13,9 +18,9 @@ class PlaceholderConverter:
     def __init__(self, *args, **kwargs):
         raise NotImplementedError("This converter is not yet implemented")
 
+
 # Create placeholder instances
 OptimizedPdfOcrConverter = PlaceholderConverter
-PlainTextConverter = PlaceholderConverter
 HtmlConverter = PlaceholderConverter
 RssConverter = PlaceholderConverter
 WikipediaConverter = PlaceholderConverter
@@ -28,7 +33,6 @@ PptxConverter = PlaceholderConverter
 ImageConverter = PlaceholderConverter
 AudioConverter = PlaceholderConverter
 OutlookMsgConverter = PlaceholderConverter
-ZipConverter = PlaceholderConverter
 EpubConverter = PlaceholderConverter
 DocumentIntelligenceConverter = PlaceholderConverter
 CsvConverter = PlaceholderConverter

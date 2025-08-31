@@ -14,8 +14,33 @@ authors = [
   { name = "MarkItDown Team", email = "team@markitdown.dev" },
 ]
 
+[project.optional-dependencies]
+vision-ocr = [
+  "pymupdf>=1.23.0",
+  "opencv-python>=4.8.0",
+  "pillow>=10.0.0",
+  "google-cloud-vision>=3.4.0",
+  "azure-cognitiveservices-vision-computervision>=0.9.0",
+  "openai>=1.0.0",
+  "anthropic>=0.7.0",
+  "requests>=2.31.0",
+  "numpy>=1.24.0",
+  "matplotlib>=3.7.0",
+  "pytesseract>=0.3.10",
+  "easyocr>=1.7.0",
+  "transformers>=4.30.0",
+  "torch>=2.0.0",
+  "torchvision>=0.15.0",
+]
+
 [tool.hatch.version]
 path = "packages/markitdown/src/markitdown/__about__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = [
+  "packages/markitdown/src/markitdown",
+  "packages/markitdown-web-ui/src/markitdown_web_ui",
+]
 
 [tool.hatch.workspace]
 packages = [

@@ -15,5 +15,9 @@ class UnsupportedFormatException(FileConversionException):
 
 class FailedConversionAttempt(FileConversionException):
     """Raised when a conversion attempt fails."""
-    pass
+    
+    def __init__(self, converter=None, exc_info=None):
+        self.converter = converter
+        self.exc_info = exc_info
+        super().__init__(f"Conversion failed with converter: {converter}")
 
