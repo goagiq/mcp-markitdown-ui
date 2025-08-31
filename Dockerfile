@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     tesseract-ocr-eng \
     libgl1 \
     libglib2.0-0 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV
@@ -26,14 +27,15 @@ COPY README.md ./
 # Copy the entire workspace
 COPY packages/ ./packages/
 
-# Copy main.py to the app directory
+# Copy main application files
 COPY main.py ./
+COPY deployment.py ./
 
 # Create virtual environment and install dependencies using UV
 RUN uv venv
 
 # Create configurable directories
-RUN mkdir -p /app/input /app/output
+RUN mkdir -p /app/input /app/output /app/uploads /app/logs
 
 # Install markitdown with Vision OCR dependencies
 RUN pip install -e ".[vision-ocr]"
@@ -50,10 +52,12 @@ EXPOSE 8200
 
 # Set environment variables
 ENV PYTHONPATH=/app/packages/markitdown-web-ui/src:/app/packages/markitdown-mcp-server/src
-ENV INPUT_DIR=/app/input
+ENV INPUT_DIR=/app/uploads
 ENV OUTPUT_DIR=/app/output
 ENV HOST=0.0.0.0
 ENV PORT=8200
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

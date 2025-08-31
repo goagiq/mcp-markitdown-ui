@@ -13,6 +13,9 @@ keywords = ["markitdown", "mcp", "fastapi", "file-conversion", "markdown"]
 authors = [
   { name = "MarkItDown Team", email = "team@markitdown.dev" },
 ]
+dependencies = [
+    "fastapi-mcp>=0.4.0",
+]
 
 [project.optional-dependencies]
 vision-ocr = [

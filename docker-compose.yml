@@ -13,11 +13,14 @@ services:
       - PORT=8200
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app/packages/markitdown-web-ui/src:/app/packages/markitdown-mcp-server/src
     volumes:
       - ./uploads:/app/uploads
       - ./output:/app/output
       - ./logs:/app/logs
+      - ./input:/app/input
       - markitdown_cache:/app/cache
+      - markitdown_ocr_cache:/app/ocr_cache
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
@@ -96,6 +99,8 @@ services:
 
 volumes:
   markitdown_cache:
+    driver: local
+  markitdown_ocr_cache:
     driver: local
   prometheus_data:
     driver: local

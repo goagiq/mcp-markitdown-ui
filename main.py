@@ -7,6 +7,7 @@ Provides both web interface and MCP protocol capabilities
 import os
 import sys
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
 from fastapi_mcp import FastApiMCP
 import uvicorn
 
@@ -37,8 +38,6 @@ def main():
     app.mount("/api", mcp_app)
     
     # Add redirect from root to web UI
-    from fastapi.responses import RedirectResponse
-    
     @app.get("/")
     async def root():
         return RedirectResponse(url="/web")
@@ -50,8 +49,8 @@ def main():
     mcp.mount_http(app, mount_path="/mcp")
     
     # Run the combined server with uvicorn
-    port = 8200  # Explicitly set to 8200
-    host = "127.0.0.1"  # Explicitly set to 127.0.0.1
+    port = int(os.environ.get('PORT', 8200))
+    host = os.environ.get('HOST', '0.0.0.0')  # Use 0.0.0.0 for Docker
     print(f"Starting MarkItDown Server on {host}:{port}")
     print(f"Web UI available at: http://{host}:{port}/web")
     print(f"REST API available at: http://{host}:{port}/api")

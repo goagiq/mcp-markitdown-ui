@@ -2,3 +2,6 @@
 !packages/
 !pyproject.toml
 !README.md
+!main.py
+!deployment.py
+!env.example

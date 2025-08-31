@@ -8,15 +8,22 @@ services:
       - "8200:8200"  # Expose port 8200 to local PC
     volumes:
       # Configurable input/output folder mapping
-      - ${INPUT_DIR:-./input}:/app/input:rw
+      - ${INPUT_DIR:-./uploads}:/app/uploads:rw
       - ${OUTPUT_DIR:-./output}:/app/output:rw
+      - ./logs:/app/logs:rw
+      - ./input:/app/input:rw
       # Development: Mount source code for live reloading
       - ./packages:/app/packages:ro
+      - markitdown_cache:/app/cache
+      - markitdown_ocr_cache:/app/ocr_cache
     environment:
       - HOST=0.0.0.0
       - PORT=8200
-      - INPUT_DIR=/app/input
+      - INPUT_DIR=/app/uploads
       - OUTPUT_DIR=/app/output
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app/packages/markitdown-web-ui/src:/app/packages/markitdown-mcp-server/src
       - LOG_LEVEL=${LOG_LEVEL:-DEBUG}
       - DEBUG=true
     restart: unless-stopped
@@ -34,5 +41,7 @@ networks:
     driver: bridge
 
 volumes:
-  input-data:
-  output-data:
+  markitdown_cache:
+    driver: local
+  markitdown_ocr_cache:
+    driver: local
