@@ -5,68 +5,42 @@ build-backend = "hatchling.build"
 [project]
 name = "markitdown-web-ui"
 dynamic = ["version"]
-description = "FastAPI web UI for MarkItDown file conversion"
+description = "Web UI for MarkItDown file conversion"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
-keywords = ["fastapi", "markitdown", "web-ui", "file-conversion", "markdown"]
+keywords = ["markitdown", "web-ui", "fastapi", "file-conversion"]
 authors = [
   { name = "MarkItDown Team", email = "team@markitdown.dev" },
 ]
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Programming Language :: Python",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: Implementation :: CPython",
-  "Topic :: Software Development :: Libraries :: Python Modules",
-  "Topic :: Text Processing :: Markup",
-  "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
-]
+
 dependencies = [
-  "fastapi>=0.104.0",
-  "uvicorn[standard]>=0.24.0",
-  "python-multipart>=0.0.6",
-  "websockets>=12.0",
-  "aiofiles>=23.0.0",
+  "fastapi>=0.100.0",
+  "uvicorn[standard]>=0.20.0",
   "jinja2>=3.1.0",
-  "python-magic>=0.4.27",
-  "pydantic>=2.5.0",
-  "pydantic-settings>=2.0.0",
-  "markitdown[all]>=0.1.3",
-  "markitdown-mcp-server>=0.1.0",
+  "python-multipart>=0.0.6",
+  "markitdown>=0.1.0",
 ]
 
 [project.optional-dependencies]
 dev = [
   "pytest>=7.0.0",
   "pytest-asyncio>=0.21.0",
-  "pytest-cov>=4.0.0",
   "httpx>=0.25.0",
   "black>=23.0.0",
   "isort>=5.12.0",
   "mypy>=1.0.0",
   "ruff>=0.1.0",
-  "pre-commit>=3.0.0",
 ]
 
-[project.urls]
-Documentation = "https://github.com/microsoft/markitdown#readme"
-Issues = "https://github.com/microsoft/markitdown/issues"
-Source = "https://github.com/microsoft/markitdown"
+[project.scripts]
+markitdown-web = "markitdown_web_ui.app:main"
 
 [tool.hatch.version]
 path = "src/markitdown_web_ui/__about__.py"
 
-[project.scripts]
-markitdown-web = "markitdown_web_ui.__main__:main"
-
-[tool.hatch.envs.default]
-features = ["dev"]
-
-[tool.hatch.envs.test]
-features = ["dev"]
+[tool.hatch.build.targets.wheel]
+packages = ["src/markitdown_web_ui"]
 
 [tool.black]
 line-length = 88
@@ -92,38 +66,21 @@ warn_no_return = true
 warn_unreachable = true
 strict_equality = true
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_classes = ["Test*"]
-python_functions = ["test_*"]
-addopts = [
-  "--strict-markers",
-  "--strict-config",
-  "--cov=markitdown_web_ui",
-  "--cov-report=term-missing",
-  "--cov-report=html",
-  "--cov-report=xml",
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+select = [
+  "E",  # pycodestyle errors
+  "W",  # pycodestyle warnings
+  "F",  # pyflakes
+  "I",  # isort
+  "B",  # flake8-bugbear
+  "C4", # flake8-comprehensions
+  "UP", # pyupgrade
+]
+ignore = [
+  "E501",  # line too long, handled by black
+  "B008",  # do not perform function calls in argument defaults
+  "C901",  # too complex
 ]
 
-[tool.coverage.run]
-source = ["src/markitdown_web_ui"]
-omit = [
-  "*/tests/*",
-  "*/test_*",
-  "*/__pycache__/*",
-]
-
-[tool.coverage.report]
-exclude_lines = [
-  "pragma: no cover",
-  "def __repr__",
-  "if self.debug:",
-  "if settings.DEBUG",
-  "raise AssertionError",
-  "raise NotImplementedError",
-  "if 0:",
-  "if __name__ == .__main__.:",
-  "class .*\\bProtocol\\):",
-  "@(abc\\.)?abstractmethod",
-]

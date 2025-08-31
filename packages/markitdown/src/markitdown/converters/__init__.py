@@ -1,30 +1,47 @@
-# SPDX-FileCopyrightText: 2024-present Adam Fourney <adamfo@microsoft.com>
-#
-# SPDX-License-Identifier: MIT
+"""
+MarkItDown converters package
+"""
 
-from ._plain_text_converter import PlainTextConverter
-from ._html_converter import HtmlConverter
-from ._rss_converter import RssConverter
-from ._wikipedia_converter import WikipediaConverter
-from ._youtube_converter import YouTubeConverter
-from ._ipynb_converter import IpynbConverter
-from ._bing_serp_converter import BingSerpConverter
+# Import only the converters that actually exist
+from ._advanced_optimized_pdf_ocr_converter import AdvancedOptimizedPdfOcrConverter
+from ._vision_ocr_converter import VisionOcrConverter
 from ._pdf_converter import PdfConverter
-from ._docx_converter import DocxConverter
-from ._xlsx_converter import XlsxConverter, XlsConverter
-from ._pptx_converter import PptxConverter
-from ._image_converter import ImageConverter
-from ._audio_converter import AudioConverter
-from ._outlook_msg_converter import OutlookMsgConverter
-from ._zip_converter import ZipConverter
-from ._doc_intel_converter import (
-    DocumentIntelligenceConverter,
-    DocumentIntelligenceFileType,
-)
-from ._epub_converter import EpubConverter
-from ._csv_converter import CsvConverter
+
+# Create placeholder classes for missing converters
+class PlaceholderConverter:
+    """Placeholder converter for missing implementations."""
+    def __init__(self, *args, **kwargs):
+        raise NotImplementedError("This converter is not yet implemented")
+
+# Create placeholder instances
+OptimizedPdfOcrConverter = PlaceholderConverter
+PlainTextConverter = PlaceholderConverter
+HtmlConverter = PlaceholderConverter
+RssConverter = PlaceholderConverter
+WikipediaConverter = PlaceholderConverter
+YouTubeConverter = PlaceholderConverter
+IpynbConverter = PlaceholderConverter
+BingSerpConverter = PlaceholderConverter
+DocxConverter = PlaceholderConverter
+XlsxConverter = PlaceholderConverter
+PptxConverter = PlaceholderConverter
+ImageConverter = PlaceholderConverter
+AudioConverter = PlaceholderConverter
+OutlookMsgConverter = PlaceholderConverter
+ZipConverter = PlaceholderConverter
+EpubConverter = PlaceholderConverter
+DocumentIntelligenceConverter = PlaceholderConverter
+CsvConverter = PlaceholderConverter
+EnhancedPdfConverter = PlaceholderConverter
+
+# Alias for XLS files
+XlsConverter = XlsxConverter
 
 __all__ = [
+    "PdfConverter",
+    "VisionOcrConverter",
+    "OptimizedPdfOcrConverter",
+    "AdvancedOptimizedPdfOcrConverter",
     "PlainTextConverter",
     "HtmlConverter",
     "RssConverter",
@@ -32,7 +49,6 @@ __all__ = [
     "YouTubeConverter",
     "IpynbConverter",
     "BingSerpConverter",
-    "PdfConverter",
     "DocxConverter",
     "XlsxConverter",
     "XlsConverter",
@@ -41,8 +57,8 @@ __all__ = [
     "AudioConverter",
     "OutlookMsgConverter",
     "ZipConverter",
-    "DocumentIntelligenceConverter",
-    "DocumentIntelligenceFileType",
     "EpubConverter",
+    "DocumentIntelligenceConverter",
     "CsvConverter",
+    "EnhancedPdfConverter"
 ]

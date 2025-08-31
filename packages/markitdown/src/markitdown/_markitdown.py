@@ -39,6 +39,9 @@ from .converters import (
     EpubConverter,
     DocumentIntelligenceConverter,
     CsvConverter,
+    VisionOcrConverter,
+    EnhancedPdfConverter,
+    AdvancedOptimizedPdfOcrConverter,
 )
 
 from ._base_converter import DocumentConverter, DocumentConverterResult
@@ -192,9 +195,42 @@ class MarkItDown:
             self.register_converter(ImageConverter())
             self.register_converter(IpynbConverter())
             self.register_converter(PdfConverter())
+
+            # Register Advanced Optimized PDF OCR converter
+            self.register_converter(AdvancedOptimizedPdfOcrConverter(), priority=PRIORITY_SPECIFIC_FILE_FORMAT)
             self.register_converter(OutlookMsgConverter())
             self.register_converter(EpubConverter())
             self.register_converter(CsvConverter())
+            
+            # Register Enhanced PDF converter if enhanced_pdf is enabled
+            enhanced_pdf_enabled = kwargs.get("enhanced_pdf", False)
+            if enhanced_pdf_enabled:
+                enhanced_pdf_args = {
+                    "vision_ocr_model": kwargs.get("enhanced_pdf_model", "llava:7b"),
+                    "enable_analysis": kwargs.get("enhanced_pdf_analysis", True),
+                    "analysis_timeout": kwargs.get("enhanced_pdf_timeout", 30),
+                    "fallback_to_traditional": kwargs.get("enhanced_pdf_fallback", True)
+                }
+                self.register_converter(
+                    EnhancedPdfConverter(**enhanced_pdf_args),
+                    priority=PRIORITY_SPECIFIC_FILE_FORMAT
+                )
+            
+            # Register Vision OCR converter if vision_ocr_model is provided
+            vision_ocr_model = kwargs.get("vision_ocr_model")
+            if vision_ocr_model is not None:
+                vision_ocr_args = {
+                    "model": vision_ocr_model,
+                    "use_hybrid_ocr": kwargs.get("vision_ocr_hybrid", True),
+                    "max_image_size": kwargs.get("vision_ocr_max_size", 800),
+                    "use_grayscale": kwargs.get("vision_ocr_grayscale", True),
+                    "compression_quality": kwargs.get("vision_ocr_quality", 85),
+                    "timeout": kwargs.get("vision_ocr_timeout", 300)
+                }
+                self.register_converter(
+                    VisionOcrConverter(**vision_ocr_args),
+                    priority=PRIORITY_SPECIFIC_FILE_FORMAT
+                )
 
             # Register Document Intelligence converter at the top of the stack if endpoint is provided
             docintel_endpoint = kwargs.get("docintel_endpoint")

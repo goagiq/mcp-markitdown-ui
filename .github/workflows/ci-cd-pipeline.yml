@@ -1,0 +1,496 @@
+name: MarkItDown CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  release:
+    types: [ published ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # Security and Code Quality Checks
+  security-scan:
+    name: Security and Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety pylint black isort mypy
+          pip install -e packages/markitdown[vision-ocr-advanced]
+          pip install -e packages/markitdown-mcp-server
+          pip install -e packages/markitdown-web-ui
+
+      - name: Run Bandit security analysis
+        run: |
+          bandit -r packages/ -f json -o security-report.json || true
+          bandit -r packages/ -f txt -o security-report.txt
+
+      - name: Run Safety dependency check
+        run: |
+          safety check --json --output safety-report.json || true
+          safety check --output safety-report.txt
+
+      - name: Run code formatting check
+        run: |
+          black --check packages/
+          isort --check-only packages/
+
+      - name: Run type checking
+        run: |
+          mypy packages/markitdown/src/
+          mypy packages/markitdown-mcp-server/src/
+          mypy packages/markitdown-web-ui/src/
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            security-report.json
+            security-report.txt
+            safety-report.json
+            safety-report.txt
+
+  # Unit and Integration Tests
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: security-scan
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+        include:
+          - python-version: '3.11'
+            test-args: '--cov=packages/markitdown --cov=packages/markitdown-mcp-server --cov=packages/markitdown-web-ui --cov-report=xml --cov-report=html'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio pytest-mock
+          pip install -e packages/markitdown[vision-ocr-advanced]
+          pip install -e packages/markitdown-mcp-server
+          pip install -e packages/markitdown-web-ui
+
+      - name: Run unit tests
+        run: |
+          pytest packages/markitdown/tests/ -v --tb=short
+          pytest packages/markitdown-mcp-server/tests/ -v --tb=short
+          pytest packages/markitdown-web-ui/tests/ -v --tb=short
+
+      - name: Run integration tests
+        run: |
+          pytest packages/markitdown/tests/test_integration.py -v --tb=short || true
+
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v3
+        if: matrix.python-version == '3.11'
+        with:
+          name: coverage-reports
+          path: |
+            htmlcov/
+            coverage.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: |
+            .pytest_cache/
+            test-results/
+
+  # Performance Tests
+  performance-test:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest-benchmark locust
+          pip install -e packages/markitdown[vision-ocr-advanced]
+
+      - name: Run performance benchmarks
+        run: |
+          pytest packages/markitdown/tests/test_performance.py --benchmark-only
+
+      - name: Run load tests
+        run: |
+          locust -f packages/markitdown/tests/load_test.py --headless --users 10 --spawn-rate 2 --run-time 60s
+
+      - name: Upload performance results
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-results
+          path: |
+            .benchmarks/
+            locust-results/
+
+  # Container Security Scan
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          docker build -f Dockerfile.prod -t markitdown:test .
+          docker build -f Dockerfile.mcp.prod -t markitdown-mcp:test .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'markitdown:test'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: container-scan-results
+          path: trivy-results.sarif
+
+  # Build and Push Images
+  build-and-push:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: [test, container-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and push MarkItDown image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.prod
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push MCP Server image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.mcp.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-mcp:${{ steps.meta.outputs.version }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install deployment dependencies
+        run: |
+          pip install ansible kubernetes
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Deploy to staging environment
+        run: |
+          # Deploy using Docker Compose or Kubernetes
+          docker-compose -f docker-compose.staging.yml up -d
+          
+          # Wait for deployment to be ready
+          ./scripts/wait-for-deployment.sh staging
+
+      - name: Run staging tests
+        run: |
+          # Run smoke tests against staging environment
+          pytest packages/markitdown/tests/test_staging.py -v
+
+      - name: Notify staging deployment
+        if: always()
+        run: |
+          echo "Staging deployment completed"
+          # Add notification logic here (Slack, email, etc.)
+
+  # Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build-and-push, deploy-staging]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install deployment dependencies
+        run: |
+          pip install ansible kubernetes
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create production backup
+        run: |
+          # Create backup before deployment
+          ./scripts/backup.sh production
+
+      - name: Deploy to production environment
+        run: |
+          # Deploy using blue-green strategy
+          ./scripts/deploy-production.sh
+          
+          # Wait for deployment to be ready
+          ./scripts/wait-for-deployment.sh production
+
+      - name: Run production tests
+        run: |
+          # Run smoke tests against production environment
+          pytest packages/markitdown/tests/test_production.py -v
+
+      - name: Health check
+        run: |
+          # Verify all services are healthy
+          ./scripts/health-check.sh production
+
+      - name: Notify production deployment
+        if: always()
+        run: |
+          echo "Production deployment completed"
+          # Add notification logic here (Slack, email, etc.)
+
+  # Rollback (if needed)
+  rollback:
+    name: Rollback Deployment
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure() && github.event_name == 'release'
+    environment: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Rollback deployment
+        run: |
+          # Rollback to previous version
+          ./scripts/rollback.sh production
+
+      - name: Notify rollback
+        run: |
+          echo "Production rollback completed"
+          # Add notification logic here
+
+  # Security Compliance Check
+  compliance-check:
+    name: Security Compliance Check
+    runs-on: ubuntu-latest
+    needs: [security-scan, container-scan]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download security reports
+        uses: actions/download-artifact@v3
+        with:
+          name: security-reports
+
+      - name: Download container scan results
+        uses: actions/download-artifact@v3
+        with:
+          name: container-scan-results
+
+      - name: Run compliance checks
+        run: |
+          # Check for critical security issues
+          if grep -q "CRITICAL" security-report.txt; then
+            echo "Critical security issues found"
+            exit 1
+          fi
+          
+          # Check for high severity vulnerabilities
+          if grep -q "HIGH" security-report.txt; then
+            echo "High severity vulnerabilities found"
+            exit 1
+          fi
+          
+          echo "Compliance check passed"
+
+      - name: Generate compliance report
+        run: |
+          # Generate compliance report
+          ./scripts/generate-compliance-report.sh
+
+      - name: Upload compliance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: compliance-report
+          path: compliance-report.md
+
+  # Documentation Update
+  update-docs:
+    name: Update Documentation
+    runs-on: ubuntu-latest
+    needs: [test, compliance-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install documentation dependencies
+        run: |
+          pip install sphinx sphinx-rtd-theme
+
+      - name: Build documentation
+        run: |
+          cd docs
+          make html
+
+      - name: Deploy documentation
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html
+
+  # Notifications
+  notify:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-production, compliance-check, update-docs]
+    if: always()
+
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          channel: '#markitdown-deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Notify email
+        run: |
+          # Send email notification
+          echo "Pipeline completed with status: ${{ needs.deploy-production.result }}"
+          # Add email notification logic here

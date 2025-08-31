@@ -1,34 +1,15 @@
-# SPDX-FileCopyrightText: 2024-present Adam Fourney <adamfo@microsoft.com>
-#
-# SPDX-License-Identifier: MIT
+"""
+MarkItDown - A simple text-based document reader for LLM use.
+"""
 
-from .__about__ import __version__
-from ._markitdown import (
-    MarkItDown,
-    PRIORITY_SPECIFIC_FILE_FORMAT,
-    PRIORITY_GENERIC_FILE_FORMAT,
-)
-from ._base_converter import DocumentConverterResult, DocumentConverter
+from ._markitdown import MarkItDown
 from ._stream_info import StreamInfo
-from ._exceptions import (
-    MarkItDownException,
-    MissingDependencyException,
-    FailedConversionAttempt,
-    FileConversionException,
-    UnsupportedFormatException,
-)
+from ._base_converter import DocumentConverter, DocumentConverterResult
 
 __all__ = [
-    "__version__",
     "MarkItDown",
+    "StreamInfo", 
     "DocumentConverter",
     "DocumentConverterResult",
-    "MarkItDownException",
-    "MissingDependencyException",
-    "FailedConversionAttempt",
-    "FileConversionException",
-    "UnsupportedFormatException",
-    "StreamInfo",
-    "PRIORITY_SPECIFIC_FILE_FORMAT",
-    "PRIORITY_GENERIC_FILE_FORMAT",
 ]
+

@@ -9,6 +9,11 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libmagic1 \
+    ffmpeg \
+    tesseract-ocr \
+    tesseract-ocr-eng \
+    libgl1 \
+    libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Install UV
@@ -17,7 +22,6 @@ RUN pip install uv
 # Copy workspace configuration
 COPY pyproject.toml ./
 COPY README.md ./
-COPY packages/ ./packages/
 
 # Create virtual environment and install dependencies using UV
 RUN uv venv
@@ -25,13 +29,8 @@ RUN uv venv
 # Create configurable directories
 RUN mkdir -p /app/input /app/output
 
-# Copy application code
-COPY packages/markitdown-web-ui/src/ ./packages/markitdown-web-ui/src/
-COPY packages/markitdown-mcp-server/src/ ./packages/markitdown-mcp-server/src/
-
-# Install packages in editable mode (install MCP server first since web-ui depends on it)
-RUN pip install -e ./packages/markitdown-mcp-server
-RUN pip install -e ./packages/markitdown-web-ui
+# Install markitdown with Vision OCR dependencies
+RUN pip install -e ".[vision-ocr]"
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
