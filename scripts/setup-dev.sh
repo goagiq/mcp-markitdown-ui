@@ -75,7 +75,7 @@ if [ ! -f ".env" ]; then
 
 # Web UI Settings
 WEB_UI_HOST=0.0.0.0
-WEB_UI_PORT=8100
+WEB_UI_PORT=8200
 WEB_UI_DEBUG=true
 
 # MCP Server Settings
@@ -106,8 +106,8 @@ echo "📋 Next steps:"
 echo "  1. Activate the virtual environment: source .venv/bin/activate"
 echo "  2. Start the MCP server: cd packages/markitdown-mcp-server && python -m markitdown_mcp_server"
 echo "  3. Start the web UI: cd packages/markitdown-web-ui && python -m markitdown_web_ui"
-echo "  4. Access the web UI at: http://localhost:8100"
-echo "  5. Access the API docs at: http://localhost:8100/docs"
+echo "  4. Access the web UI at: http://localhost:8200"
+echo "  5. Access the API docs at: http://localhost:8200/docs"
 echo ""
 echo "🔧 Development commands:"
 echo "  - Run tests: pytest"

@@ -8,7 +8,7 @@ import json
 
 def test_web_conversion():
     """Test the web conversion endpoint"""
-    url = "http://127.0.0.1:8100/convert"
+    url = "http://127.0.0.1:8200/convert"
     pdf_path = "input/Publication_of_Unclassified_Intelligence_Analysis_Products_IPM.pdf"
     
     if not os.path.exists(pdf_path):

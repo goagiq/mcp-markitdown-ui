@@ -7,7 +7,7 @@ REM This script deploys the MarkItDown Web UI with configurable input/output dir
 REM Default configuration
 set DEFAULT_INPUT_DIR=.\input
 set DEFAULT_OUTPUT_DIR=.\output
-set DEFAULT_PORT=8100
+set DEFAULT_PORT=8200
 
 REM Parse command line arguments
 set INPUT_DIR=%DEFAULT_INPUT_DIR%

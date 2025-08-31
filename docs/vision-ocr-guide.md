@@ -361,20 +361,20 @@ async with ClientSession() as session:
 
 ```bash
 # Convert file
-curl -X POST "http://localhost:8100/api/vision-ocr/convert" \
+curl -X POST "http://localhost:8200/api/vision-ocr/convert" \
   -F "file=@document.pdf" \
   -F "model=llava:7b" \
   -F "use_hybrid_ocr=true"
 
 # Analyze PDF
-curl -X POST "http://localhost:8100/api/vision-ocr/analyze" \
+curl -X POST "http://localhost:8200/api/vision-ocr/analyze" \
   -F "file=@document.pdf"
 
 # Get job status
-curl "http://localhost:8100/api/vision-ocr/status/{job_id}"
+curl "http://localhost:8200/api/vision-ocr/status/{job_id}"
 
 # Update configuration
-curl -X POST "http://localhost:8100/api/vision-ocr/config" \
+curl -X POST "http://localhost:8200/api/vision-ocr/config" \
   -H "Content-Type: application/json" \
   -d '{"action": "update", "settings": {"preferred_model": "llava:13b"}}'
 ```

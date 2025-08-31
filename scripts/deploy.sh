@@ -15,7 +15,7 @@ NC='\033[0m' # No Color
 # Default configuration
 DEFAULT_INPUT_DIR="./input"
 DEFAULT_OUTPUT_DIR="./output"
-DEFAULT_PORT="8100"
+DEFAULT_PORT="8200"
 
 # Function to print colored output
 print_status() {
@@ -49,7 +49,7 @@ show_usage() {
     echo "Examples:"
     echo "  $0                                    # Use default settings"
     echo "  $0 -i /path/to/docs -o /path/to/output"
-    echo "  $0 -i /path/to/images -o /path/to/converted -p 8200"
+    echo "  $0 -i /path/to/images -o /path/to/converted -p 8300"
     echo "  $0 -d                                 # Development mode"
 }
 

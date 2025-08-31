@@ -322,7 +322,7 @@ create_environment_file() {
 
 # Application Settings
 HOST=0.0.0.0
-PORT=8100
+PORT=8200
 DEBUG=false
 LOG_LEVEL=INFO
 

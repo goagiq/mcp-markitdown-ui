@@ -26,6 +26,9 @@ COPY README.md ./
 # Copy the entire workspace
 COPY packages/ ./packages/
 
+# Copy main.py to the app directory
+COPY main.py ./
+
 # Create virtual environment and install dependencies using UV
 RUN uv venv
 
@@ -42,19 +45,19 @@ RUN pip install -e "./packages/markitdown-web-ui"
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
-# Expose port 8100
-EXPOSE 8100
+# Expose port 8200
+EXPOSE 8200
 
 # Set environment variables
 ENV PYTHONPATH=/app/packages/markitdown-web-ui/src:/app/packages/markitdown-mcp-server/src
 ENV INPUT_DIR=/app/input
 ENV OUTPUT_DIR=/app/output
 ENV HOST=0.0.0.0
-ENV PORT=8100
+ENV PORT=8200
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8100/health || exit 1
+    CMD curl -f http://localhost:8200/health || exit 1
 
 # Start the application
-CMD ["python", "-m", "uvicorn", "markitdown_web_ui.app:create_app", "--host", "0.0.0.0", "--port", "8100"]
+CMD ["python", "main.py"]

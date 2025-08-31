@@ -128,7 +128,7 @@ uv run python -m markitdown_web_ui
 ### Using the Interface
 
 1. **Access the Web UI**:
-   - Open your browser to `http://localhost:8100`
+   - Open your browser to `http://localhost:8200`
    - You'll see the main conversion interface
 
 2. **Single File Conversion**:
@@ -146,15 +146,15 @@ uv run python -m markitdown_web_ui
 4. **API Access**:
    ```bash
    # Convert a file via API
-   curl -X POST "http://localhost:8100/api/convert" \
+   curl -X POST "http://localhost:8200/api/convert" \
         -F "file=@document.pdf" \
         -F "output_format=markdown"
    
    # Get supported formats
-   curl "http://localhost:8100/api/formats"
+   curl "http://localhost:8200/api/formats"
    
    # Health check
-   curl "http://localhost:8100/health"
+   curl "http://localhost:8200/health"
    ```
 
 ### Web UI Features
@@ -420,7 +420,7 @@ markitdown --use-plugins document.myformat
 2. **Run the Container**:
    ```bash
    # Web UI
-   docker run -p 8100:8100 markitdown:latest
+   docker run -p 8200:8200 markitdown:latest
    
    # CLI
    docker run --rm -i markitdown:latest < input.pdf > output.md
@@ -437,13 +437,13 @@ markitdown --use-plugins document.myformat
      markitdown:
        build: .
        ports:
-         - "8100:8100"
+         - "8200:8200"
        volumes:
          - ./uploads:/app/uploads
          - ./outputs:/app/outputs
        environment:
          - MARKITDOWN_HOST=0.0.0.0
-         - MARKITDOWN_PORT=8100
+         - MARKITDOWN_PORT=8200
    ```
 
 ### Systemd Service
@@ -483,7 +483,7 @@ server {
     server_name your-domain.com;
     
     location / {
-        proxy_pass http://localhost:8100;
+        proxy_pass http://localhost:8200;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -535,7 +535,7 @@ server {
 2. **Port Already in Use**:
    ```bash
    # Check what's using the port
-   lsof -i :8100
+   lsof -i :8200
    
    # Kill the process
    kill -9 <PID>

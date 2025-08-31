@@ -35,7 +35,7 @@ A modern web interface for easy file conversion:
 - **RESTful API**: Programmatic access to all features
 - **Auto-detection**: Automatic format detection and conversion
 - **Configurable Directories**: Map local folders for input/output
-- **Port 8100**: Exposed to local PC for easy access
+- **Port 8200**: Exposed to local PC for easy access
 
 ### Production-Ready Deployment
 Complete deployment solution with:
@@ -94,7 +94,7 @@ Phase 6 transformed MarkItDown into an enterprise-grade production solution with
 graph TB
     subgraph "User Interfaces"
         CLI[Command Line Interface]
-        WebUI[FastAPI Web UI<br/>Port 8100]
+        WebUI[FastAPI Web UI<br/>Port 8200]
         MCP[MCP Tools]
         API[RESTful API]
     end
@@ -501,7 +501,7 @@ cd packages/markitdown-web-ui
 uv run python -m markitdown_web_ui
 ```
 
-Visit `http://localhost:8100` to access the web interface.
+Visit `http://localhost:8200` to access the web interface.
 
 ### 3. Use MCP Tools
 
@@ -523,7 +523,7 @@ uv run python -m markitdown_mcp_server
    ```
 
 2. **Access the Interface**:
-   - Open your browser to `http://localhost:8100`
+   - Open your browser to `http://localhost:8200`
    - Use the drag-and-drop interface to upload files
    - Select output format and click "Convert"
 
@@ -535,7 +535,7 @@ uv run python -m markitdown_mcp_server
 4. **API Access**:
    ```bash
    # Convert a file via API
-   curl -X POST "http://localhost:8100/api/convert" \
+   curl -X POST "http://localhost:8200/api/convert" \
         -F "file=@document.pdf" \
         -F "output_format=markdown"
    ```
@@ -621,7 +621,7 @@ docker-compose --profile production up -d
 
 # Access via:
 # - Web UI: http://localhost (nginx proxy)
-# - Direct API: http://localhost:8100
+# - Direct API: http://localhost:8200
 # - Health Check: http://localhost/health
 ```
 
@@ -645,7 +645,7 @@ spec:
       - name: markitdown-web-ui
         image: markitdown-web-ui:latest
         ports:
-        - containerPort: 8100
+        - containerPort: 8200
         env:
         - name: INPUT_DIR
           value: "/app/input"
@@ -670,7 +670,7 @@ Create a `.env` file for production:
 ```bash
 # Production settings
 HOST=0.0.0.0
-PORT=8100
+PORT=8200
 DEBUG=false
 LOG_LEVEL=WARNING
 
@@ -691,13 +691,13 @@ RATE_LIMIT_WINDOW=60
 #### Monitoring and Maintenance
 ```bash
 # Check application health
-curl http://localhost:8100/health
+curl http://localhost:8200/health
 
 # View application logs
 docker-compose logs -f markitdown-web-ui
 
 # Check directory status
-curl http://localhost:8100/api/directories/config
+curl http://localhost:8200/api/directories/config
 
 # Backup input/output directories
 tar -czf backup-$(date +%Y%m%d).tar.gz /path/to/input /path/to/output
@@ -719,27 +719,27 @@ docker-compose up -d --build
    ```
 
 2. **Access the web interface**:
-   - Open your browser to `http://localhost:8100`
+   - Open your browser to `http://localhost:8200`
    - Use the drag-and-drop interface to upload files
    - Select output format and convert
 
 #### API Usage
 ```bash
 # Convert a single file
-curl -X POST -F "file=@document.pdf" http://localhost:8100/api/convert
+curl -X POST -F "file=@document.pdf" http://localhost:8200/api/convert
 
 # Batch convert multiple files
-curl -X POST -F "files=@file1.pdf" -F "files=@file2.docx" http://localhost:8100/api/convert/batch
+curl -X POST -F "files=@file1.pdf" -F "files=@file2.docx" http://localhost:8200/api/convert/batch
 
 # Detect file format
-curl -X POST -F "file=@unknown_file" http://localhost:8100/api/detect
+curl -X POST -F "file=@unknown_file" http://localhost:8200/api/detect
 
 # List supported formats
-curl http://localhost:8100/api/formats
+curl http://localhost:8200/api/formats
 
 # Check directory contents
-curl http://localhost:8100/api/directories/input
-curl http://localhost:8100/api/directories/output
+curl http://localhost:8200/api/directories/input
+curl http://localhost:8200/api/directories/output
 ```
 
 ### HOW TO: Use MCP Tools
@@ -811,7 +811,7 @@ print(result["data"]["content"])
 #### Port Already in Use
 ```bash
 # Check what's using the port
-lsof -i :8100
+lsof -i :8200
 
 # Use a different port
 ./scripts/deploy.sh -p 8200
@@ -840,13 +840,13 @@ docker-compose restart markitdown-web-ui
 #### File Upload Issues
 ```bash
 # Check file size limits
-curl -X POST -F "file=@large_file.pdf" http://localhost:8100/api/convert
+curl -X POST -F "file=@large_file.pdf" http://localhost:8200/api/convert
 
 # Check supported formats
-curl http://localhost:8100/api/formats
+curl http://localhost:8200/api/formats
 
 # Test file format detection
-curl -X POST -F "file=@test_file" http://localhost:8100/api/detect
+curl -X POST -F "file=@test_file" http://localhost:8200/api/detect
 ```
 
 ## 🔧 Development

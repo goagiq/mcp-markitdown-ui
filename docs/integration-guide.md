@@ -180,7 +180,7 @@ from pydantic_settings import BaseSettings
 class FastAPISettings(BaseSettings):
     # Server settings
     host: str = "0.0.0.0"
-    port: int = 8100
+    port: int = 8200
     debug: bool = False
     
     # MCP integration settings
@@ -207,7 +207,7 @@ Create a `.env` file:
 ```bash
 # Server Configuration
 HOST=0.0.0.0
-PORT=8100
+PORT=8200
 DEBUG=false
 
 # MCP Server Configuration
@@ -236,19 +236,19 @@ LOG_FILE=./logs/fastapi.log
    ```
 
 2. **Access the API documentation:**
-   - Swagger UI: http://localhost:8100/docs
-   - ReDoc: http://localhost:8100/redoc
+   - Swagger UI: http://localhost:8200/docs
+   - ReDoc: http://localhost:8200/redoc
 
 3. **Test the integration:**
    ```bash
    # Health check
-   curl http://localhost:8100/health
+   curl http://localhost:8200/health
    
    # List MCP tools
-   curl http://localhost:8100/mcp/tools
+   curl http://localhost:8200/mcp/tools
    
    # Convert a file
-   curl -X POST http://localhost:8100/mcp/convert \
+   curl -X POST http://localhost:8200/mcp/convert \
      -F "file=@document.pdf" \
      -F "output_format=markdown"
    ```
@@ -286,13 +286,13 @@ services:
       context: .
       dockerfile: packages/markitdown-web-ui/Dockerfile
     ports:
-      - "8100:8100"
+      - "8200:8200"
     volumes:
       - ./uploads:/app/uploads
       - ./logs:/app/logs
     environment:
       - WEB_UI_HOST=0.0.0.0
-      - WEB_UI_PORT=8100
+      - WEB_UI_PORT=8200
       - MCP_SERVER_URL=http://mcp-server:8001
       - LOG_LEVEL=INFO
     depends_on:
@@ -408,7 +408,7 @@ server {
 
     # Web UI
     location / {
-        proxy_pass http://localhost:8100;
+        proxy_pass http://localhost:8200;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -417,7 +417,7 @@ server {
 
     # API endpoints
     location /api/ {
-        proxy_pass http://localhost:8100;
+        proxy_pass http://localhost:8200;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -426,7 +426,7 @@ server {
 
     # MCP endpoints
     location /mcp/ {
-        proxy_pass http://localhost:8100;
+        proxy_pass http://localhost:8200;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -435,7 +435,7 @@ server {
 
     # WebSocket support
     location /ws/ {
-        proxy_pass http://localhost:8100;
+        proxy_pass http://localhost:8200;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -482,20 +482,20 @@ RUN useradd -m -u 1000 markitdown && \
 USER markitdown
 
 # Expose port
-EXPOSE 8100
+EXPOSE 8200
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8100/health || exit 1
+    CMD curl -f http://localhost:8200/health || exit 1
 
 # Start application
-CMD ["uvicorn", "markitdown_web_ui.app:create_app", "--host", "0.0.0.0", "--port", "8100"]
+CMD ["uvicorn", "markitdown_web_ui.app:create_app", "--host", "0.0.0.0", "--port", "8200"]
 ```
 
 2. **Build and deploy:**
    ```bash
    docker build -f packages/markitdown-web-ui/Dockerfile.prod -t markitdown-web:latest .
-   docker run -d -p 8100:8100 --name markitdown-web markitdown-web:latest
+   docker run -d -p 8200:8200 --name markitdown-web markitdown-web:latest
    ```
 
 ## Troubleshooting Guide
@@ -549,10 +549,10 @@ tail -f packages/markitdown-web-ui/logs/fastapi.log
 **Solutions:**
 ```bash
 # Check supported formats
-curl http://localhost:8100/mcp/formats
+curl http://localhost:8200/mcp/formats
 
 # Check plugin status
-curl http://localhost:8100/mcp/plugins
+curl http://localhost:8200/mcp/plugins
 
 # Verify file format
 file your-document.pdf
@@ -635,7 +635,7 @@ curl -f http://localhost:8001/health || echo "MCP server is down"
 
 # Check FastAPI application
 echo "Checking FastAPI application..."
-curl -f http://localhost:8100/health || echo "FastAPI application is down"
+curl -f http://localhost:8200/health || echo "FastAPI application is down"
 
 # Check disk space
 echo "Checking disk space..."

@@ -6,10 +6,10 @@ The MarkItDown API provides both traditional REST endpoints and Model Context Pr
 
 ## Base URLs
 
-- **Web UI**: `http://localhost:8100`
-- **API Documentation**: `http://localhost:8100/docs`
-- **ReDoc Documentation**: `http://localhost:8100/redoc`
-- **Health Check**: `http://localhost:8100/health`
+- **Web UI**: `http://localhost:8200`
+- **API Documentation**: `http://localhost:8200/docs`
+- **ReDoc Documentation**: `http://localhost:8200/redoc`
+- **Health Check**: `http://localhost:8200/health`
 
 ## Authentication
 
@@ -445,13 +445,13 @@ import requests
 with open('document.pdf', 'rb') as f:
     files = {'file': f}
     data = {'output_format': 'markdown'}
-    response = requests.post('http://localhost:8100/mcp/convert', 
+    response = requests.post('http://localhost:8200/mcp/convert', 
                            files=files, data=data)
     result = response.json()
     print(result)
 
 # List supported formats
-response = requests.get('http://localhost:8100/mcp/formats')
+response = requests.get('http://localhost:8200/mcp/formats')
 formats = response.json()
 print(formats)
 ```
@@ -464,7 +464,7 @@ const formData = new FormData();
 formData.append('file', fileInput.files[0]);
 formData.append('output_format', 'markdown');
 
-fetch('http://localhost:8100/mcp/convert', {
+fetch('http://localhost:8200/mcp/convert', {
   method: 'POST',
   body: formData
 })
@@ -472,7 +472,7 @@ fetch('http://localhost:8100/mcp/convert', {
 .then(result => console.log(result));
 
 // List supported formats
-fetch('http://localhost:8100/mcp/formats')
+fetch('http://localhost:8200/mcp/formats')
 .then(response => response.json())
 .then(formats => console.log(formats));
 ```
@@ -481,15 +481,15 @@ fetch('http://localhost:8100/mcp/formats')
 
 ```bash
 # Convert a file
-curl -X POST "http://localhost:8100/mcp/convert" \
+curl -X POST "http://localhost:8200/mcp/convert" \
   -F "file=@document.pdf" \
   -F "output_format=markdown"
 
 # List supported formats
-curl -X GET "http://localhost:8100/mcp/formats"
+curl -X GET "http://localhost:8200/mcp/formats"
 
 # Detect file format
-curl -X POST "http://localhost:8100/mcp/detect" \
+curl -X POST "http://localhost:8200/mcp/detect" \
   -F "file=@document.pdf"
 ```
 

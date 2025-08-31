@@ -33,6 +33,9 @@ def main():
     # Mount web UI routes to the main app at /web
     app.mount("/web", web_app)
     
+    # Mount REST API endpoints from deployment.py
+    app.mount("/api", mcp_app)
+    
     # Add redirect from root to web UI
     from fastapi.responses import RedirectResponse
     
@@ -40,17 +43,8 @@ def main():
     async def root():
         return RedirectResponse(url="/web")
     
-    # Create FastApiMCP instance with operation IDs
-    mcp = FastApiMCP(
-        mcp_app, 
-        include_operations=[
-            "convert_document",
-            "list_supported_formats",
-            "detect_format",
-            "get_root",
-            "get_health"
-        ]
-    )
+    # Create FastApiMCP instance - try without include_operations
+    mcp = FastApiMCP(mcp_app)
     
     # Mount the MCP operations to the main app using HTTP transport
     mcp.mount_http(app, mount_path="/mcp")
@@ -60,6 +54,7 @@ def main():
     host = "127.0.0.1"  # Explicitly set to 127.0.0.1
     print(f"Starting MarkItDown Server on {host}:{port}")
     print(f"Web UI available at: http://{host}:{port}/web")
+    print(f"REST API available at: http://{host}:{port}/api")
     print(f"MCP endpoint available at: http://{host}:{port}/mcp")
     uvicorn.run(app, host=host, port=port)
 

@@ -33,7 +33,7 @@ pip install -e .
 Start the web server:
 
 ```bash
-python -m uvicorn markitdown_web_ui.app:create_app --host 0.0.0.0 --port 8100
+python -m uvicorn markitdown_web_ui.app:create_app --host 0.0.0.0 --port 8200
 ```
 
 Or use the command line:

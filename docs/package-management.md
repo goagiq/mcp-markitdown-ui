@@ -59,7 +59,7 @@ markitdown/
    
    # Or start individually
    make start-mcp    # MCP server on port 8001
-   make start-web    # Web UI on port 8100
+   make start-web    # Web UI on port 8200
    ```
 
 ## 📋 Development Commands
@@ -276,7 +276,7 @@ Create a `.env` file for local development:
 ```bash
 # Web UI Settings
 WEB_UI_HOST=0.0.0.0
-WEB_UI_PORT=8100
+WEB_UI_PORT=8200
 WEB_UI_DEBUG=true
 
 # MCP Server Settings
@@ -298,9 +298,9 @@ LOG_FILE=logs/markitdown.log
 
 ### Port Configuration
 
-- **Web UI:** Port 8100 (configurable via `WEB_UI_PORT`)
+- **Web UI:** Port 8200 (configurable via `WEB_UI_PORT`)
 - **MCP Server:** Port 8001 (configurable via `MCP_SERVER_PORT`)
-- **API Documentation:** http://localhost:8100/docs
+- **API Documentation:** http://localhost:8200/docs
 
 ## 📁 Directory Structure
 
@@ -348,7 +348,7 @@ markitdown/
 2. **Port conflicts:**
    ```bash
    # Check what's using the port
-   netstat -ano | findstr :8100
+   netstat -ano | findstr :8200
    
    # Kill the process or change port in .env
    ```
@@ -373,7 +373,7 @@ markitdown/
 
 1. Check the logs in `packages/markitdown-web-ui/logs/`
 2. Run with debug mode: `WEB_UI_DEBUG=true make start-web`
-3. Check the API documentation: http://localhost:8100/docs
+3. Check the API documentation: http://localhost:8200/docs
 4. Review the test suite for usage examples
 
 ## 📚 Additional Resources

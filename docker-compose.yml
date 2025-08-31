@@ -7,12 +7,12 @@ services:
       dockerfile: Dockerfile
     container_name: markitdown-web-ui
     ports:
-      - "8100:8100"
+      - "8200:8200"
     environment:
       - INPUT_DIR=/app/uploads
       - OUTPUT_DIR=/app/output
       - HOST=0.0.0.0
-      - PORT=8100
+      - PORT=8200
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     volumes:
@@ -22,7 +22,7 @@ services:
       - markitdown_cache:/app/cache
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8100/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8200/health"]
       interval: 30s
       timeout: 10s
       retries: 3

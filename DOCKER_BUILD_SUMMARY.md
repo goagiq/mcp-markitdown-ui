@@ -48,10 +48,10 @@ Successfully built a new Docker image with enhanced PDF OCR functionality that i
 
 ```bash
 # Basic run
-docker run -p 8100:8100 markitdown:latest
+docker run -p 8200:8200 markitdown:latest
 
 # With volume mounts for input/output
-docker run -p 8100:8100 \
+docker run -p 8200:8200 \
   -v ./input:/app/input \
   -v ./output:/app/output \
   markitdown:latest

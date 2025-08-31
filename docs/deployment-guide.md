@@ -59,10 +59,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8100:8100"
+      - "8200:8200"
     environment:
       - HOST=0.0.0.0
-      - PORT=8100
+      - PORT=8200
       - DEBUG=false
       - LOG_LEVEL=INFO
       - OLLAMA_HOST=http://ollama:11434
@@ -215,11 +215,11 @@ RUN mkdir -p /app/input /app/output /app/logs /app/cache
 RUN chmod +x /app/scripts/start.sh
 
 # Expose port
-EXPOSE 8100
+EXPOSE 8200
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8100/health || exit 1
+    CMD curl -f http://localhost:8200/health || exit 1
 
 # Start application
 CMD ["/app/scripts/start.sh"]
@@ -340,7 +340,7 @@ ollama pull llava:13b
 
 # Start the application
 echo "Starting MarkItDown Web UI..."
-exec uvicorn markitdown_web_ui.app:create_app --host 0.0.0.0 --port 8100 --workers 4
+exec uvicorn markitdown_web_ui.app:create_app --host 0.0.0.0 --port 8200 --workers 4
 ```
 
 #### 6. Create Nginx Configuration
@@ -354,7 +354,7 @@ events {
 
 http {
     upstream markitdown {
-        server markitdown-web:8100;
+        server markitdown-web:8200;
     }
 
     # Rate limiting
@@ -462,10 +462,10 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8100:8100"
+      - "8200:8200"
     environment:
       - HOST=0.0.0.0
-      - PORT=8100
+      - PORT=8200
       - DEBUG=false
       - LOG_LEVEL=INFO
       - OLLAMA_HOST=http://ollama:11434
@@ -597,7 +597,7 @@ Create `.env.production`:
 ```bash
 # Application Settings
 HOST=0.0.0.0
-PORT=8100
+PORT=8200
 DEBUG=false
 LOG_LEVEL=INFO
 
@@ -701,7 +701,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 # Allow necessary ports
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow 8100/tcp
+sudo ufw allow 8200/tcp
 sudo ufw allow 11434/tcp
 
 # Enable firewall
@@ -731,7 +731,7 @@ alerting:
 scrape_configs:
   - job_name: 'markitdown-web'
     static_configs:
-      - targets: ['markitdown-web:8100']
+      - targets: ['markitdown-web:8200']
     metrics_path: '/metrics'
     scrape_interval: 5s
 
@@ -877,9 +877,9 @@ Create `nginx-load-balancer.conf`:
 ```nginx
 upstream markitdown_backend {
     least_conn;
-    server markitdown-web-1:8100 max_fails=3 fail_timeout=30s;
-    server markitdown-web-2:8100 max_fails=3 fail_timeout=30s;
-    server markitdown-web-3:8100 max_fails=3 fail_timeout=30s;
+    server markitdown-web-1:8200 max_fails=3 fail_timeout=30s;
+    server markitdown-web-2:8200 max_fails=3 fail_timeout=30s;
+    server markitdown-web-3:8200 max_fails=3 fail_timeout=30s;
     keepalive 32;
 }
 
@@ -923,7 +923,7 @@ spec:
       - name: markitdown-web
         image: markitdown:latest
         ports:
-        - containerPort: 8100
+        - containerPort: 8200
         env:
         - name: OLLAMA_HOST
           value: "http://ollama-service:11434"
@@ -939,13 +939,13 @@ spec:
         livenessProbe:
           httpGet:
             path: /health
-            port: 8100
+            port: 8200
           initialDelaySeconds: 30
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /ready
-            port: 8100
+            port: 8200
           initialDelaySeconds: 5
           periodSeconds: 5
 ---
@@ -959,7 +959,7 @@ spec:
   ports:
   - protocol: TCP
     port: 80
-    targetPort: 8100
+    targetPort: 8200
   type: LoadBalancer
 ```
 
@@ -1004,7 +1004,7 @@ sudo ufw default allow outgoing
 sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow from 10.0.0.0/8 to any port 8100
+sudo ufw allow from 10.0.0.0/8 to any port 8200
 sudo ufw enable
 ```
 
@@ -1150,7 +1150,7 @@ watch -n 1 'docker stats --no-stream'
 docker exec markitdown-web ping ollama
 
 # Check port availability
-netstat -tulpn | grep :8100
+netstat -tulpn | grep :8200
 
 # Restart network
 docker network prune
@@ -1180,7 +1180,7 @@ iotop
 nvidia-smi  # If using GPU
 
 # Monitor application metrics
-curl http://localhost:8100/metrics
+curl http://localhost:8200/metrics
 
 # Check logs for errors
 tail -f logs/markitdown.log | grep ERROR
@@ -1194,7 +1194,7 @@ du -sh /var/lib/docker/volumes/
 
 ```bash
 # Application health
-curl http://localhost:8100/health
+curl http://localhost:8200/health
 
 # Ollama health
 curl http://localhost:11434/api/tags

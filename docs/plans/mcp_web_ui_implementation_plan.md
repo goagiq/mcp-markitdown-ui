@@ -300,7 +300,7 @@ This plan outlines the implementation of Model Context Protocol (MCP) tools and 
 - [x] Set up backup and recovery procedures
 
 ### 9.4 Configurable Directory Mapping (5/5 tasks) ✅
-- [x] Expose port 8100 to local PC
+- [x] Expose port 8200 to local PC
 - [x] Map local folders for input and output
 - [x] Make configuration configurable for different use cases
 - [x] Create deployment scripts for Linux/macOS and Windows
