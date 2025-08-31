@@ -1,0 +1,10 @@
+# MCP Server Dependencies
+mcp>=1.0.0
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.0.0
+python-multipart>=0.0.6
+fastapi-mcp>=1.0.0
+
+# Existing MarkItDown dependencies
+# (These should already be installed from the main requirements)
