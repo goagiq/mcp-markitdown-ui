@@ -166,10 +166,30 @@ src/.DS_Store
 .DS_Store
 .cursorrules
 
-#input and output files
-input
-output  
-packages\uploads
+# Input and output files
+input/
+output/
+packages/uploads/
+
+# Document files (PDF, Word, etc.)
+*.pdf
+*.doc
+*.docx
+*.xls
+*.xlsx
+*.ppt
+*.pptx
+*.odt
+*.ods
+*.odp
+
+# Cache directories and files
+cache/
+*cache/
+ocr_cache/
+packages/*/ocr_cache/
+*.cache
+model_performance_cache.pkl
 
 # Test files and outputs
 test/*.pyc
@@ -179,5 +199,5 @@ test/data/
 test/output/
 *.test_output.md
 
-#environment
+# Environment
 .env
