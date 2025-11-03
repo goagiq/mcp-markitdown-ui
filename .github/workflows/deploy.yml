@@ -42,7 +42,7 @@ jobs:
         uv run pytest --cov=markitdown_web_ui --cov=markitdown_mcp_server --cov-fail-under=90
     
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         flags: unittests
